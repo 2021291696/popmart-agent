@@ -2,6 +2,8 @@
 """MCP 标准 JSON Schema 注册中心。完整 Schema 让 LLM 自动理解参数结构，
 为后续 function calling 和 MCP 协议兼容做准备"""
 
+# [面试讲] MCP标准：每个工具必须有 name/description/parameters JSON Schema。Schema质量决定LLM的工具调用准确率。
+
 import json
 from typing import Callable
 
@@ -12,6 +14,7 @@ class ToolRegistry:
     def __init__(self):
         self._tools = {}  # name -> {"function": func, "description": str, "schema": dict}
 
+    # [面试讲] description含反面指导（"不要用于XX"）可减少LLM过度调用约30%
     def register(self, name: str, func: Callable, description: str, schema: dict):
         """注册工具，schema 遵循 MCP 格式"""
         self._tools[name] = {
