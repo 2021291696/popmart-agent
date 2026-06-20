@@ -1,8 +1,8 @@
 # phase5_tools/tool_registry.py
-"""MCP 标准 JSON Schema 注册中心。完整 Schema 让 LLM 自动理解参数结构，
+"""OpenAI function calling / MCP兼容格式 JSON Schema 注册中心。完整 Schema 让 LLM 自动理解参数结构，
 为后续 function calling 和 MCP 协议兼容做准备"""
 
-# [面试讲] MCP标准：每个工具必须有 name/description/parameters JSON Schema。Schema质量决定LLM的工具调用准确率。
+# [面试讲] OpenAI function calling / MCP兼容：每个工具必须有 name/description/parameters JSON Schema。Schema质量决定LLM的工具调用准确率。
 
 import json
 from typing import Callable
@@ -41,7 +41,7 @@ class ToolRegistry:
             schema = info["schema"]
             lines.append(f"## {name}")
             lines.append(f"  描述：{info['description']}")
-            lines.append(f"  参数：{json.dumps(schema['parameters'], ensure_ascii=False, indent=4)}")
+            lines.append(f"  参数：{json.dumps(schema.get('parameters', {}), ensure_ascii=False, indent=4)}")
             lines.append("")
         return "\n".join(lines)
 
