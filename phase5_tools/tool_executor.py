@@ -1,7 +1,7 @@
 # phase5_tools/tool_executor.py
 """工具执行器 — 4层防御的结构化错误处理管线"""
 
-# [面试讲] 四层防御：① try/except 兜底 → ② 结构化错误+suggestion → ③ 连续失败封禁 → ④ react_core 全局降级
+# [面试讲] 四层防御：① try/except 兜底 → ② 结构化错误+suggestion → ③ 连续失败封禁 → ④ react_core 全局降级（由调用方 react_core 负责）
 
 import json, time
 from typing import Any
@@ -65,7 +65,7 @@ class ToolExecutor:
         s["total_time_ms"] += elapsed_ms
 
     def get_stats(self) -> dict:
-        return dict(self._stats)
+        return {k: dict(v) for k, v in self._stats.items()}
 
 
 if __name__ == "__main__":
