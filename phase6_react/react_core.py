@@ -78,8 +78,11 @@ def _call_llm(client, system_prompt: str, context: list) -> str:
     if client is None:
         return _mock_llm_response(context)
     messages = [{"role": "system", "content": system_prompt}] + context
-    r = client.chat.completions.create(model="deepseek-chat", messages=messages, temperature=0.3)
-    return r.choices[0].message.content
+    try:
+        r = client.chat.completions.create(model="deepseek-chat", messages=messages, temperature=0.3)
+        return r.choices[0].message.content
+    except Exception as e:
+        return _mock_llm_response(context)
 
 
 def react_loop(
@@ -103,7 +106,7 @@ def react_loop(
         if verbose:
             print(f"\n--- 第 {step_num} 步 ---")
         # 退出条件③：所有工具不可用
-        if registry.list_all() and all(t in executor._unavailable_tools for t in registry.list_all()):
+        if executor.all_unavailable():
             if verbose:
                 print("\n[!] 所有工具均不可用，终止")
             break
@@ -112,7 +115,7 @@ def react_loop(
         if verbose:
             print(f"Thought: {thought}\nAction: {action}\nAction Input: {action_input}")
         # 退出条件①
-        if action == "DONE":
+        if action and action.strip().upper() == "DONE":
             final_answer = action_input or "任务完成"
             steps.append({"step": step_num, "thought": thought, "action": action,
                           "action_input": action_input, "result": final_answer})
@@ -126,7 +129,13 @@ def react_loop(
         if verbose:
             print(f"Observation: {result['data'] if result['success'] else '[错误] ' + result['error']}")
         context.append({"role": "assistant", "content": llm_output})
-        context.append({"role": "user", "content": f"Observation: {json.dumps(result, ensure_ascii=False)}"})
+        # On success: only send data
+        # On failure: only send clean error message
+        if result.get("success"):
+            obs_text = json.dumps(result.get("data", ""), ensure_ascii=False)
+        else:
+            obs_text = f"[错误] {result.get('error', '未知错误')}"
+        context.append({"role": "user", "content": f"Observation: {obs_text}"})
 
     # 退出条件②：达到最大步数，追加一轮
     if verbose:

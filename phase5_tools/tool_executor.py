@@ -67,6 +67,13 @@ class ToolExecutor:
     def get_stats(self) -> dict:
         return {k: dict(v) for k, v in self._stats.items()}
 
+    def all_unavailable(self) -> bool:
+        """检查是否所有工具都不可用"""
+        if not self._stats:
+            return False
+        all_tools = self._registry.list_all()
+        return all(t in self._unavailable_tools for t in all_tools)
+
 
 if __name__ == "__main__":
     registry = ToolRegistry()
