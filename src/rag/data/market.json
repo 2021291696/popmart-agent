@@ -1,0 +1,52 @@
+{
+  "source": "WebSearch + 公开报道",
+  "secondary_market": {
+    "platforms": [
+      "闲鱼",
+      "得物",
+      "千岛",
+      "转转"
+    ],
+    "labubu_price_trajectory": {
+      "peak_2025_mid": "隐藏款'本我'峰值46000元",
+      "late_2025": "跌至480元,跌幅98%",
+      "regular_models": "部分跌破原价(82元 vs 原价99元)",
+      "cause_of_crash": "产能从1000万→5000万只/月,供给过剩"
+    },
+    "counterfeit_situation": {
+      "production_hubs": [
+        "义乌",
+        "东莞",
+        "广州"
+      ],
+      "production_speed": "热门款发售后几天内打板",
+      "fake_verification": "搭建假防伪网站诱导扫码",
+      "price_inversion": "部分高仿售价148元>官方99元"
+    }
+  },
+  "regulatory_risk": {
+    "2025_06_renminribao": "人民日报发文《盲卡盲盒哪能'无拘无束'》点名",
+    "police_involvement": "兰州警方取缔盲盒直播间,部分买家有涉赌前科",
+    "child_protection_gap": "线上线下均无需身份验证,违反2023年规范指引",
+    "europe_risk": "比利时/荷兰可能将盲盒认定为博彩",
+    "gambling_case": "万物赏平台被判开设赌场罪【(2025)浙0727刑初22号】"
+  },
+  "consumer_sentiment": {
+    "blackcat_complaints_total": 16543,
+    "industry_share_pct": 85.56,
+    "top_complaints": [
+      "品控瑕疵",
+      "售后难",
+      "只换不退",
+      "二次塑封当全新"
+    ],
+    "key_quality_issues": "头发秃毛/肢体歪斜/缝合线外露/喷漆错位/掉黑毛/异味"
+  },
+  "industry_trends": {
+    "blind_box_growth_slowing": "传统盲盒增速降至15%",
+    "plush_explosion": "毛绒玩具增长560%,超越手办成为第一品类",
+    "category_shift": "从'摆件收藏'向'情感陪伴'迁移",
+    "global_expansion": "泡泡玛特海外收入占比43.8%",
+    "ai_trend": "AIGC虚拟潮玩/数字藏品开始出现"
+  }
+}

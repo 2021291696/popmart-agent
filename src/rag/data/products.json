@@ -1,0 +1,78 @@
+[
+  {
+    "ip_name": "THE MONSTERS (LABUBU)",
+    "designer": "龙家升 Kasing Lung",
+    "birth_year": 2015,
+    "ip_type": "精灵/怪兽系",
+    "representative_series": [
+      "LABUBU 3.0 前方高能系列",
+      "LABUBU坐坐派对系列",
+      "LABUBU×Vans联名款",
+      "LABUBU迷你系列第四代"
+    ],
+    "price_range_cny": "59-5999",
+    "target_audience": "18-35岁女性为主,IP收藏爱好者",
+    "global_popularity": "极高(东南亚/欧美现象级)",
+    "unique_features": "毛绒品类爆发(+560%),引领品类转型"
+  },
+  {
+    "ip_name": "MOLLY",
+    "designer": "Kenny Wong",
+    "birth_year": 2006,
+    "ip_type": "可爱/治愈系",
+    "representative_series": [
+      "MOLLY宫廷瑞兽系列",
+      "MOLLY生肖系列",
+      "MOLLY西游记系列",
+      "MOLLY艺术大都会系列"
+    ],
+    "price_range_cny": "59-799",
+    "target_audience": "全年龄段女性,是最具辨识度的经典IP",
+    "global_popularity": "高(经典长青IP)",
+    "unique_features": "泡泡玛特最早的签约IP,2006年诞生,2016年签约后爆发"
+  },
+  {
+    "ip_name": "SKULLPANDA",
+    "designer": "熊喵",
+    "birth_year": 2019,
+    "ip_type": "酷炫/暗黑系",
+    "representative_series": [
+      "SKULLPANDA温度系列",
+      "SKULLPANDA夜之城系列",
+      "SKULLPANDA餐桌系列"
+    ],
+    "price_range_cny": "59-799",
+    "target_audience": "18-30岁潮流女性,偏好个性化风格",
+    "global_popularity": "高(增速第二,仅次于LABUBU)",
+    "unique_features": "暗黑甜酷风格差异化,增速170.6%"
+  },
+  {
+    "ip_name": "DIMOO",
+    "designer": "Ayan Deng",
+    "birth_year": 2017,
+    "ip_type": "梦幻/童话系",
+    "representative_series": [
+      "DIMOO童话系列",
+      "DIMOO星座系列",
+      "DIMOO香氛系列"
+    ],
+    "price_range_cny": "59-799",
+    "target_audience": "18-28岁女性,偏好梦幻童话风格",
+    "global_popularity": "中高(增速205.3%,正在崛起)",
+    "unique_features": "2017年诞生,2019年签约泡泡玛特后爆发"
+  },
+  {
+    "ip_name": "CRYBABY",
+    "designer": "Molly Yllom",
+    "birth_year": 2022,
+    "ip_type": "情绪/治愈系",
+    "representative_series": [
+      "CRYBABY流泪系列",
+      "CRYBABY日常系列"
+    ],
+    "price_range_cny": "59-399",
+    "target_audience": "18-30岁,偏好情绪表达的年轻消费者",
+    "global_popularity": "高(增速151.4%,新IP中增长最快之一)",
+    "unique_features": "以'哭泣'为核心视觉符号,情绪共鸣驱动购买"
+  }
+]

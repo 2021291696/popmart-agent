@@ -1,0 +1,502 @@
+{
+  "evaluation_time": "2026-06-30T12:35:52.824543",
+  "total_questions": 20,
+  "fact_questions": 10,
+  "analysis_questions": 10,
+  "accuracy_weighted": 0.4,
+  "recall": 0.45,
+  "hallucination_rate": 0.25,
+  "tool_call_effectiveness": 0.7,
+  "fact_accuracy": 0.6,
+  "analysis_accuracy": 0.2,
+  "score_distribution": {
+    "correct_2pts": 7,
+    "partial_1pt": 2,
+    "wrong_0pt": 6,
+    "hallucination_minus1": 5
+  },
+  "details": [
+    {
+      "question_id": "F01",
+      "type": "fact",
+      "query": "泡泡玛特2025年总营收是多少",
+      "expected_source": "business",
+      "expected_keywords": [
+        "371.2",
+        "184.7"
+      ],
+      "actual_sources": [
+        "business_competitor_52TOYS_0",
+        "business_ip_星星人_0",
+        "business_membership_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\n竞品:52TOYS。2024年营收6.3亿元,毛利率较低%,自有IP占比24.5%,门店数5家。备注:依赖蜡笔小新授权(60%营收,2027到期)。\n\n[来源:business_competitor_52TOYS_0]",
+      "confidence": 0.85,
+      "score": 0,
+      "hit_rate": 0.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "错误。关键词命中0/2。"
+    },
+    {
+      "question_id": "F02",
+      "type": "fact",
+      "query": "LABUBU诞生于哪一年",
+      "expected_source": "products",
+      "expected_keywords": [
+        "2015"
+      ],
+      "actual_sources": [
+        "products_THE MONSTERS (LABUBU)_0",
+        "products_SKULLPANDA_0",
+        "business_ip_THE MONSTERS (LABUBU)_0",
+        "market_secondary_market_0",
+        "products_CRYBABY_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\nIP名称:THE MONSTERS (LABUBU)。设计师:龙家升 Kasing Lung。诞生于2015年。IP类型:精灵/怪兽系。价格带:59-5999元。代表系列:LABUBU 3.0 前方高能系列, LABUBU坐坐派对系列, LABUBU×Vans联名款, LABUBU迷你系列第四代。目标受众:18-35岁女性为主,IP收藏爱好者。全球热度:极高",
+      "confidence": 0.85,
+      "score": 2,
+      "hit_rate": 1.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "完全正确。关键词命中1/1，来源匹配。"
+    },
+    {
+      "question_id": "F03",
+      "type": "fact",
+      "query": "泡泡玛特毛利率是多少",
+      "expected_source": "business",
+      "expected_keywords": [
+        "72.1",
+        "70.3"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "business_membership_0",
+        "business_financials_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": 0,
+      "hit_rate": 0.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "错误。关键词命中0/2。"
+    },
+    {
+      "question_id": "F04",
+      "type": "fact",
+      "query": "MOLLY的设计师是谁",
+      "expected_source": "products",
+      "expected_keywords": [
+        "Kenny",
+        "Wong"
+      ],
+      "actual_sources": [
+        "products_MOLLY_0",
+        "business_ip_MOLLY_0",
+        "products_SKULLPANDA_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\nIP名称:MOLLY。设计师:Kenny Wong。诞生于2006年。IP类型:可爱/治愈系。价格带:59-799元。代表系列:MOLLY宫廷瑞兽系列, MOLLY生肖系列, MOLLY西游记系列, MOLLY艺术大都会系列。目标受众:全年龄段女性,是最具辨识度的经典IP。全球热度:高(经典长青IP)。独特特征:泡泡玛特最早的签约IP,2006年诞生,201",
+      "confidence": 0.85,
+      "score": 2,
+      "hit_rate": 1.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "完全正确。关键词命中2/2，来源匹配。"
+    },
+    {
+      "question_id": "F05",
+      "type": "fact",
+      "query": "DIMOO有哪些代表系列",
+      "expected_source": "products",
+      "expected_keywords": [
+        "童话",
+        "星座",
+        "香氛"
+      ],
+      "actual_sources": [
+        "products_DIMOO_0",
+        "products_MOLLY_0",
+        "business_competitor_TOP TOY_0",
+        "products_THE MONSTERS (LABUBU)_0",
+        "products_CRYBABY_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\nIP名称:DIMOO。设计师:Ayan Deng。诞生于2017年。IP类型:梦幻/童话系。价格带:59-799元。代表系列:DIMOO童话系列, DIMOO星座系列, DIMOO香氛系列。目标受众:18-28岁女性,偏好梦幻童话风格。全球热度:中高(增速205.3%,正在崛起)。独特特征:2017年诞生,2019年签约泡泡玛特后爆发。\n\n[来源:produ",
+      "confidence": 0.85,
+      "score": 2,
+      "hit_rate": 1.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "完全正确。关键词命中3/3，来源匹配。"
+    },
+    {
+      "question_id": "F06",
+      "type": "fact",
+      "query": "泡泡玛特会员复购率是多少",
+      "expected_source": "business",
+      "expected_keywords": [
+        "55.7",
+        "93.7"
+      ],
+      "actual_sources": [
+        "business_membership_0",
+        "market_trends_0",
+        "products_MOLLY_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\n泡泡玛特累计注册会员72.58万人,2025年新增26.5万人。会员复购率55.7%,会员贡献销售占比93.7%。\n\n[来源:business_membership_0]",
+      "confidence": 0.85,
+      "score": 2,
+      "hit_rate": 1.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "完全正确。关键词命中2/2，来源匹配。"
+    },
+    {
+      "question_id": "F07",
+      "type": "fact",
+      "query": "SKULLPANDA的设计师是谁",
+      "expected_source": "products",
+      "expected_keywords": [
+        "熊喵"
+      ],
+      "actual_sources": [
+        "products_SKULLPANDA_0",
+        "products_THE MONSTERS (LABUBU)_0",
+        "business_ip_SKULLPANDA_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\nIP名称:SKULLPANDA。设计师:熊喵。诞生于2019年。IP类型:酷炫/暗黑系。价格带:59-799元。代表系列:SKULLPANDA温度系列, SKULLPANDA夜之城系列, SKULLPANDA餐桌系列。目标受众:18-30岁潮流女性,偏好个性化风格。全球热度:高(增速第二,仅次于LABUBU)。独特特征:暗黑甜酷风格差异化,增速170.6%。",
+      "confidence": 0.85,
+      "score": 2,
+      "hit_rate": 1.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "完全正确。关键词命中1/1，来源匹配。"
+    },
+    {
+      "question_id": "F08",
+      "type": "fact",
+      "query": "泡泡玛特海外营收占比多少",
+      "expected_source": "business",
+      "expected_keywords": [
+        "43.8",
+        "162.7"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "business_financials_0",
+        "business_membership_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": 1,
+      "hit_rate": 0.5,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "部分正确。关键词命中1/2。"
+    },
+    {
+      "question_id": "F09",
+      "type": "fact",
+      "query": "CRYBABY诞生于哪一年",
+      "expected_source": "products",
+      "expected_keywords": [
+        "2022"
+      ],
+      "actual_sources": [
+        "products_CRYBABY_0",
+        "business_ip_CRYBABY_0",
+        "products_THE MONSTERS (LABUBU)_0",
+        "products_MOLLY_0",
+        "market_secondary_market_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\nIP名称:CRYBABY。设计师:Molly Yllom。诞生于2022年。IP类型:情绪/治愈系。价格带:59-399元。代表系列:CRYBABY流泪系列, CRYBABY日常系列。目标受众:18-30岁,偏好情绪表达的年轻消费者。全球热度:高(增速151.4%,新IP中增长最快之一)。独特特征:以'哭泣'为核心视觉符号,情绪共鸣驱动购买。\n\n[来源:pr",
+      "confidence": 0.85,
+      "score": 2,
+      "hit_rate": 1.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "完全正确。关键词命中1/1，来源匹配。"
+    },
+    {
+      "question_id": "F10",
+      "type": "fact",
+      "query": "泡泡玛特存货是多少亿",
+      "expected_source": "business",
+      "expected_keywords": [
+        "54.73",
+        "259",
+        "123"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "business_financials_0",
+        "business_membership_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": 0,
+      "hit_rate": 0.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "错误。关键词命中0/3。"
+    },
+    {
+      "question_id": "A01",
+      "type": "analysis",
+      "query": "泡泡玛特最大的经营风险是什么",
+      "expected_source": "multi",
+      "expected_keywords": [
+        "IP",
+        "LABUBU",
+        "集中度",
+        "依赖"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "products_MOLLY_0",
+        "business_membership_0",
+        "market_secondary_market_0",
+        "market_regulatory_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": -1,
+      "hit_rate": 0.0,
+      "source_match": false,
+      "hallucination": true,
+      "reason": "幻觉。编造了知识库没有的信息。source_mismatch. possible_hallucination. "
+    },
+    {
+      "question_id": "A02",
+      "type": "analysis",
+      "query": "LABUBU和MOLLY有什么区别",
+      "expected_source": "multi",
+      "expected_keywords": [
+        "设计师",
+        "风格",
+        "受众",
+        "增速"
+      ],
+      "actual_sources": [
+        "products_THE MONSTERS (LABUBU)_0",
+        "products_SKULLPANDA_0",
+        "products_MOLLY_0",
+        "business_ip_THE MONSTERS (LABUBU)_0",
+        "products_CRYBABY_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\nIP名称:THE MONSTERS (LABUBU)。设计师:龙家升 Kasing Lung。诞生于2015年。IP类型:精灵/怪兽系。价格带:59-5999元。代表系列:LABUBU 3.0 前方高能系列, LABUBU坐坐派对系列, LABUBU×Vans联名款, LABUBU迷你系列第四代。目标受众:18-35岁女性为主,IP收藏爱好者。全球热度:极高",
+      "confidence": 0.85,
+      "score": 1,
+      "hit_rate": 0.5,
+      "source_match": false,
+      "hallucination": false,
+      "reason": "部分正确。关键词命中2/4。source_mismatch. "
+    },
+    {
+      "question_id": "A03",
+      "type": "analysis",
+      "query": "泡泡玛特和TOP TOY的核心差异是什么",
+      "expected_source": "business",
+      "expected_keywords": [
+        "IP",
+        "毛利率",
+        "自有"
+      ],
+      "actual_sources": [
+        "products_MOLLY_0",
+        "market_trends_0",
+        "business_competitor_TOP TOY_0",
+        "business_membership_0",
+        "products_DIMOO_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\nIP名称:MOLLY。设计师:Kenny Wong。诞生于2006年。IP类型:可爱/治愈系。价格带:59-799元。代表系列:MOLLY宫廷瑞兽系列, MOLLY生肖系列, MOLLY西游记系列, MOLLY艺术大都会系列。目标受众:全年龄段女性,是最具辨识度的经典IP。全球热度:高(经典长青IP)。独特特征:泡泡玛特最早的签约IP,2006年诞生,201",
+      "confidence": 0.85,
+      "score": 0,
+      "hit_rate": 0.3333333333333333,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "错误。关键词命中1/3。"
+    },
+    {
+      "question_id": "A04",
+      "type": "analysis",
+      "query": "泡泡玛特海外扩张面临什么挑战",
+      "expected_source": "multi",
+      "expected_keywords": [
+        "管理",
+        "供应链",
+        "断货",
+        "物流"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "business_membership_0",
+        "products_MOLLY_0",
+        "market_secondary_market_0",
+        "market_counterfeit_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": -1,
+      "hit_rate": 0.0,
+      "source_match": false,
+      "hallucination": true,
+      "reason": "幻觉。编造了知识库没有的信息。source_mismatch. possible_hallucination. "
+    },
+    {
+      "question_id": "A05",
+      "type": "analysis",
+      "query": "为什么泡泡玛特股价在财报后暴跌",
+      "expected_source": "multi",
+      "expected_keywords": [
+        "LABUBU",
+        "IP依赖",
+        "增速",
+        "预期"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "market_counterfeit_0",
+        "market_secondary_market_0",
+        "business_membership_0",
+        "products_DIMOO_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": -1,
+      "hit_rate": 0.25,
+      "source_match": false,
+      "hallucination": true,
+      "reason": "幻觉。编造了知识库没有的信息。source_mismatch. possible_hallucination. "
+    },
+    {
+      "question_id": "A06",
+      "type": "analysis",
+      "query": "泡泡玛特品类结构正在发生什么变化",
+      "expected_source": "market",
+      "expected_keywords": [
+        "毛绒",
+        "手办",
+        "560",
+        "陪伴"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "products_DIMOO_0",
+        "business_membership_0",
+        "market_counterfeit_0",
+        "market_secondary_market_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": 2,
+      "hit_rate": 1.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "完全正确。关键词命中4/4，来源匹配。"
+    },
+    {
+      "question_id": "A07",
+      "type": "analysis",
+      "query": "泡泡玛特的盲盒模式面临什么监管风险",
+      "expected_source": "market",
+      "expected_keywords": [
+        "赌博",
+        "人民日报",
+        "未成年",
+        "比利时"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "market_regulatory_0",
+        "business_membership_0",
+        "products_MOLLY_0",
+        "market_secondary_market_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": 0,
+      "hit_rate": 0.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "错误。关键词命中0/4。"
+    },
+    {
+      "question_id": "A08",
+      "type": "analysis",
+      "query": "LABUBU二手价格为什么从峰值暴跌98%",
+      "expected_source": "market",
+      "expected_keywords": [
+        "产能",
+        "稀缺",
+        "5000万",
+        "供给"
+      ],
+      "actual_sources": [
+        "products_THE MONSTERS (LABUBU)_0",
+        "products_SKULLPANDA_0",
+        "market_secondary_market_0"
+      ],
+      "answer_preview": "基于检索到的3段资料，核心信息如下：\n\nIP名称:THE MONSTERS (LABUBU)。设计师:龙家升 Kasing Lung。诞生于2015年。IP类型:精灵/怪兽系。价格带:59-5999元。代表系列:LABUBU 3.0 前方高能系列, LABUBU坐坐派对系列, LABUBU×Vans联名款, LABUBU迷你系列第四代。目标受众:18-35岁女性为主,IP收藏爱好者。全球热度:极高",
+      "confidence": 0.85,
+      "score": 0,
+      "hit_rate": 0.0,
+      "source_match": true,
+      "hallucination": false,
+      "reason": "错误。关键词命中0/4。"
+    },
+    {
+      "question_id": "A09",
+      "type": "analysis",
+      "query": "泡泡玛特的IP孵化模式有什么优劣势",
+      "expected_source": "multi",
+      "expected_keywords": [
+        "签约",
+        "设计师",
+        "300",
+        "6个月"
+      ],
+      "actual_sources": [
+        "market_trends_0",
+        "products_MOLLY_0",
+        "business_membership_0",
+        "business_competitor_TOP TOY_0",
+        "market_secondary_market_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\n行业趋势:传统盲盒增速降至传统盲盒增速降至15%。毛绒玩具增长毛绒玩具增长560%,超越手办成为第一品类,超越手办成为第一品类。消费趋势从从'摆件收藏'向'情感陪伴'迁移。泡泡玛特海外收入占比泡泡玛特海外收入占比43.8%。\n\n[来源:market_trends_0]",
+      "confidence": 0.85,
+      "score": -1,
+      "hit_rate": 0.0,
+      "source_match": false,
+      "hallucination": true,
+      "reason": "幻觉。编造了知识库没有的信息。source_mismatch. possible_hallucination. "
+    },
+    {
+      "question_id": "A10",
+      "type": "analysis",
+      "query": "泡泡玛特用什么策略降低LABUBU依赖风险",
+      "expected_source": "multi",
+      "expected_keywords": [
+        "星星人",
+        "HIRONO",
+        "电影",
+        "多元化"
+      ],
+      "actual_sources": [
+        "products_THE MONSTERS (LABUBU)_0",
+        "market_trends_0",
+        "products_SKULLPANDA_0",
+        "market_secondary_market_0",
+        "business_membership_0"
+      ],
+      "answer_preview": "基于检索到的5段资料，核心信息如下：\n\nIP名称:THE MONSTERS (LABUBU)。设计师:龙家升 Kasing Lung。诞生于2015年。IP类型:精灵/怪兽系。价格带:59-5999元。代表系列:LABUBU 3.0 前方高能系列, LABUBU坐坐派对系列, LABUBU×Vans联名款, LABUBU迷你系列第四代。目标受众:18-35岁女性为主,IP收藏爱好者。全球热度:极高",
+      "confidence": 0.85,
+      "score": -1,
+      "hit_rate": 0.0,
+      "source_match": false,
+      "hallucination": true,
+      "reason": "幻觉。编造了知识库没有的信息。source_mismatch. possible_hallucination. "
+    }
+  ]
+}

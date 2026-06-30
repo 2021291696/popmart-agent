@@ -1,0 +1,122 @@
+{
+  "source": "泡泡玛特2025年报(2026年3月发布) + WebSearch",
+  "company": "泡泡玛特 Pop Mart International Group Ltd (9992.HK)",
+  "founded": 2010,
+  "financials_2025": {
+    "total_revenue_billion_cny": 371.2,
+    "yoy_growth_pct": 184.7,
+    "gross_margin_pct": 72.1,
+    "adjusted_net_profit_billion_cny": 130.8,
+    "china_revenue_billion_cny": 208.5,
+    "overseas_revenue_billion_cny": 162.7,
+    "overseas_share_pct": 43.8,
+    "inventory_billion_cny": 54.73,
+    "inventory_yoy_growth_pct": 259,
+    "inventory_turnover_days": 123
+  },
+  "business_model": {
+    "core": "IP孵化+盲盒/手办/毛绒/MEGA+全渠道零售+全球化DTC",
+    "revenue_streams": [
+      "盲盒及手办销售(120.2亿)",
+      "毛绒玩具(187.1亿,已超越手办)",
+      "MEGA珍藏系列(高客单价799-5999元)",
+      "IP授权及衍生品",
+      "城市乐园及体验"
+    ],
+    "ip_incubation": "签约300+设计师,IP孵化周期最短6个月",
+    "channels": {
+      "offline": "445家零售店+2396台机器人商店(中国内地)",
+      "online": "抽盒机小程序+天猫/京东/抖音+葩趣社区",
+      "global": "630家门店+2637台机器人商店(全球)"
+    }
+  },
+  "membership": {
+    "total_members_million": 72.58,
+    "new_members_2025_million": 26.5,
+    "repurchase_rate_pct": 55.7,
+    "member_sales_share_pct": 93.7
+  },
+  "ip_portfolio": [
+    {
+      "name": "THE MONSTERS (LABUBU)",
+      "revenue_billion": 141.6,
+      "share_pct": 38.1,
+      "yoy_growth": 365.7,
+      "birth_year": 2015,
+      "lifecycle": "爆发增长"
+    },
+    {
+      "name": "SKULLPANDA",
+      "revenue_billion": 35.4,
+      "share_pct": 9.5,
+      "yoy_growth": 170.6,
+      "birth_year": 2019,
+      "lifecycle": "高速增长"
+    },
+    {
+      "name": "MOLLY",
+      "revenue_billion": 29.0,
+      "share_pct": 7.8,
+      "yoy_growth": 38.4,
+      "birth_year": 2006,
+      "lifecycle": "成熟稳定"
+    },
+    {
+      "name": "CRYBABY",
+      "revenue_billion": 29.3,
+      "share_pct": 7.9,
+      "yoy_growth": 151.4,
+      "birth_year": 2022,
+      "lifecycle": "高速增长"
+    },
+    {
+      "name": "DIMOO",
+      "revenue_billion": 27.8,
+      "share_pct": 7.5,
+      "yoy_growth": 205.3,
+      "birth_year": 2017,
+      "lifecycle": "高速增长"
+    },
+    {
+      "name": "星星人",
+      "revenue_billion": 20.6,
+      "share_pct": 5.5,
+      "yoy_growth": 1601.4,
+      "birth_year": 2023,
+      "lifecycle": "爆发增长"
+    },
+    {
+      "name": "HIRONO",
+      "revenue_billion": 17.4,
+      "share_pct": 4.7,
+      "yoy_growth": 138.8,
+      "birth_year": 2021,
+      "lifecycle": "增长"
+    }
+  ],
+  "competitors": [
+    {
+      "name": "TOP TOY",
+      "revenue_2024_billion": 19.1,
+      "gross_margin_pct": 32,
+      "self_ip_share_pct": 50,
+      "stores": 293,
+      "note": "渠道驱动,自有IP薄弱"
+    },
+    {
+      "name": "52TOYS",
+      "revenue_2024_billion": 6.3,
+      "gross_margin_pct": "较低",
+      "self_ip_share_pct": 24.5,
+      "stores": 5,
+      "note": "依赖蜡笔小新授权(60%营收,2027到期)"
+    }
+  ],
+  "overseas_expansion": {
+    "americas_revenue_billion": 68.1,
+    "americas_yoy_growth_pct": 748.4,
+    "europe_others_revenue_billion": 14.5,
+    "europe_others_yoy_growth_pct": 506.3,
+    "strategy": "先东南亚后欧美,DTC直营模式"
+  }
+}
