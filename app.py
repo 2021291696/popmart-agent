@@ -259,7 +259,7 @@ def render_sidebar(settings):
                 st.rerun()
 
         sidebar_label("数据管道")
-        if st.button("刷新数据(抓取+嵌入)"):
+        if st.button("刷新数据（抓取+嵌入）"):
             with st.status("刷新中...", expanded=True) as status:
                 def _log(msg):
                     status.write(msg)
@@ -281,6 +281,86 @@ def render_sidebar(settings):
                   <span style="color:var(--fg-3);padding-left:1rem;">{" · ".join(tools)}</span>
                 </div>""",
                 unsafe_allow_html=True,
+            )
+
+        # 视图切换
+        sidebar_label("视图")
+        st.radio(
+            "视图",
+            options=["分析", "数据"],
+            index=0,
+            key="view_select",
+            label_visibility="collapsed",
+        )
+
+
+def render_database():
+    """数据库视图:展示所有抓取的源数据(向量化前)。
+
+    只读 src/rag/data/scraped/*.json,不读 ChromaDB(向量化后数据)。
+    失败源单独展示,每个成功源用 expander 展开全文。
+    """
+    scraped_dir = DATA_DIR_PATH / "scraped"
+    index_path = scraped_dir / "_index.json"
+
+    render_hero("数据库 · 抓取数据",
+                "向量化前的原始抓取内容(不展示向量库)。")
+
+    if not index_path.exists():
+        st.warning("尚未抓取任何数据。请到侧边栏点 [刷新数据] 触发首次抓取。")
+        return
+
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    ok_list = index.get("ok", [])
+    failed_list = index.get("failed", [])
+
+    st.caption(
+        f"上次抓取: {index.get('fetched_at', '?')} · "
+        f"成功 {len(ok_list)} / 失败 {len(failed_list)}"
+    )
+
+    # 失败源(标红,可折叠)
+    if failed_list:
+        with st.expander(f"❌ 抓取失败 ({len(failed_list)})", expanded=False):
+            for f in failed_list:
+                st.error(
+                    f"**{f.get('label', f.get('key', '?'))}**: {f.get('error', '?')}"
+                )
+
+    if not ok_list:
+        st.info("没有成功抓取的源。")
+        return
+
+    # 成功源:每个 expander 显示元数据 + 全文
+    for entry in ok_list:
+        key = entry.get("key")
+        if not key:
+            continue
+        full_path = scraped_dir / f"{key}.json"
+        if not full_path.exists():
+            st.warning(f"{key}: 文件不存在")
+            continue
+        data = json.loads(full_path.read_text(encoding="utf-8"))
+        label = data.get("label", key)
+        text_len = data.get("text_length", 0)
+        kind = data.get("kind", "?")
+        status = data.get("status", "?")
+        fetched_at = data.get("fetched_at", "?")
+        url = data.get("url", "?")
+        text = data.get("text", "")
+
+        with st.expander(f"📄 {label} · {text_len} 字符 · {kind}", expanded=False):
+            cols = st.columns([2, 1])
+            with cols[0]:
+                st.markdown(f"**URL**: [{url}]({url})")
+            with cols[1]:
+                st.caption(f"抓取时间: {fetched_at} · 状态: {status}")
+            st.text_area(
+                "原文",
+                value=text,
+                height=400,
+                key=f"db_text_{key}",
+                label_visibility="collapsed",
             )
 
 
@@ -475,6 +555,11 @@ def main():
         st.session_state.initialized = True
 
     render_sidebar(settings)
+
+    # 视图分支
+    if st.session_state.get("view_select") == "数据":
+        render_database()
+        return
 
     # 标题区
     render_hero("泡泡玛特 Agent 分析系统",

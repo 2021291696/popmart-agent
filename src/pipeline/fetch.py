@@ -1,10 +1,14 @@
-"""抓取阶段 —— 用 scrapling 批量抓 URL 存 raw JSON。
+"""抓取阶段 —— 混合 playwright + cloudscraper 抓 URL 存 raw JSON。
 
 输入:sources.enabled_sources()
 输出:src/rag/data/scraped/<key>.json (含 url/fetched_at/html/text/status)
      src/rag/data/scraped/_index.json (汇总 metadata)
 
-失败一条不影响其他源。XHS 走 agent_reach 分支目前打日志跳过,保留入口。
+抓取策略:
+- JS 重的源(React SPA):用 playwright(真实 chromium 指纹,需 JS 渲染)
+- 其他源:用 cloudscraper(轻量 HTTP,过 Cloudflare 比 playwright 更稳)
+
+失败一条不影响其他源。
 """
 from __future__ import annotations
 import json
@@ -19,6 +23,12 @@ from .sources import Source, enabled_sources
 
 DATA_DIR = Path(__file__).parent.parent / "rag" / "data"
 SCRAPED_DIR = DATA_DIR / "scraped"
+
+
+# 哪些 source.key 走 playwright(JS 重的 SPA),其余走 cloudscraper
+# - popmart_official_home:React SPA,必须 JS
+# - popmart_36kr_search:JS 搜索结果,cloudscraper 拿到空 body
+_PLAYWRIGHT_KEYS = {"popmart_official_home", "popmart_36kr_search"}
 
 
 def _extract_text(html: str, selector: str = "") -> str:
@@ -38,21 +48,59 @@ def _extract_text(html: str, selector: str = "") -> str:
     return "\n".join(lines)
 
 
-def _fetch_stealthy(url: str, timeout_ms: int = 30000) -> tuple[str, int]:
-    """浏览器渲染(处理 JS 页面),返回 (html, status)。"""
+def _fetch_with_playwright(url: str, timeout_ms: int = 30000) -> tuple[str, int]:
+    """Playwright 同步 API(JS 渲染)。失败时降级到 domcontentloaded。"""
     try:
-        from scrapling.fetchers import StealthyFetcher
+        from playwright.sync_api import sync_playwright
     except ImportError as e:
-        raise RuntimeError(f"scrapling 未安装: {e}")
+        raise RuntimeError(
+            "playwright 未安装。请运行: uv add playwright && playwright install chromium"
+        ) from e
 
-    page = StealthyFetcher.fetch(
-        url,
-        headless=True,
-        network_idle=True,
-        timeout=timeout_ms,
-        google_search=False,
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
+        try:
+            ctx = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/127.0.0.0 Safari/537.36",
+                locale="zh-CN",
+                timezone_id="Asia/Shanghai",
+                viewport={"width": 1280, "height": 800},
+            )
+            page = ctx.new_page()
+            try:
+                page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+            except Exception:
+                # 超时/网络异常:降级 domcontentloaded
+                page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+            return page.content(), 200
+        finally:
+            browser.close()
+
+
+def _fetch_with_cloudscraper(url: str, timeout_s: int = 30) -> tuple[str, int]:
+    """cloudscraper(解 Cloudflare v1/v2 challenge,3/3 稳过百度百科)。"""
+    try:
+        import cloudscraper
+    except ImportError as e:
+        raise RuntimeError("cloudscraper 未安装。请运行: uv add cloudscraper") from e
+
+    scraper = cloudscraper.create_scraper(
+        browser={"browser": "chrome", "platform": "windows", "desktop": True}
     )
-    return page.html_content, getattr(page, "status", 200)
+    r = scraper.get(url, timeout=timeout_s)
+    return r.text, r.status_code
+
+
+def _fetch_one_html(src: Source) -> tuple[str, int]:
+    """根据 source.key 选 playwright 或 cloudscraper。"""
+    if src.key in _PLAYWRIGHT_KEYS:
+        return _fetch_with_playwright(src.url)
+    return _fetch_with_cloudscraper(src.url)
 
 
 def fetch_one(src: Source, on_progress: Callable[[str], None] | None = None) -> dict:
@@ -60,7 +108,7 @@ def fetch_one(src: Source, on_progress: Callable[[str], None] | None = None) -> 
     if on_progress:
         on_progress(f"[{src.label}] 抓取中...")
 
-    html, status = _fetch_stealthy(src.url)
+    html, status = _fetch_one_html(src)
 
     text = _extract_text(html, src.selector)
     return {
