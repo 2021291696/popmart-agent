@@ -8,6 +8,17 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 
 CONFIG_FILE = ".user_config.json"
+KEYRING_SERVICE = "popmart-agent"
+KEYRING_USERNAME = "llm_api_key"
+
+
+def _keyring_available():
+    """返回 keyring 模块(可用时)或 None。"""
+    try:
+        import keyring
+        return keyring
+    except ImportError:
+        return None
 
 
 @dataclass
@@ -58,18 +69,26 @@ def load_settings() -> Settings:
         try:
             with open(cfg, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            # API key：优先编码字段（新格式），向后兼容旧明文字段
-            if data.get("llm_api_key_enc"):
+            # API key 读取优先级(strix M1):OS keyring > base64 迁移兜底
+            # 注:base64 非加密,仅作旧配置迁移读取;新写入一律走 keyring。
+            kr = _keyring_available()
+            if kr is not None:
+                try:
+                    stored = kr.get_password(KEYRING_SERVICE, KEYRING_USERNAME)
+                    if stored:
+                        s.llm_api_key = stored
+                except Exception:
+                    pass
+            # keyring 没拿到 → 尝试从旧 base64 字段迁移(一次性)
+            if not s.llm_api_key and data.get("llm_api_key_enc"):
                 import base64
                 try:
                     s.llm_api_key = base64.b64decode(
                         data["llm_api_key_enc"]
                     ).decode("utf-8")
                 except Exception:
-                    s.llm_api_key = ""  # 损坏 → 空，让用户重配
-            elif "llm_api_key" in data:
-                s.llm_api_key = data["llm_api_key"]  # 旧明文格式向后兼容
-            # 其他字段
+                    s.llm_api_key = ""
+            # 其他字段(排除所有 key 相关字段)
             for k, v in data.items():
                 if k in ("llm_api_key", "llm_api_key_enc"):
                     continue
@@ -89,23 +108,30 @@ def load_settings() -> Settings:
 
 
 def save_settings(s: Settings) -> None:
-    """保存配置到 .user_config.json。
+    """保存配置到 .user_config.json（strix M1 修复）。
 
-    API key 用 base64 编码存储（防 casual 读取），存为 llm_api_key_enc；
-    不保留明文 llm_api_key 字段。文件权限限 0o600（Linux/Mac 生效，Windows 靠 NTFS ACL）。
+    API key 存 OS keyring(Windows 凭据管理器 / macOS Keychain / Linux Secret Service),
+    绝不落盘到 .user_config.json。keyring 不可用时抛错,拒绝明文/base64 落盘。
+    其余非敏感配置照常写 json。
     """
-    import base64
     cfg = _config_path()
     data = asdict(s)
-    # API key 编码存储，移除明文字段
-    if data.get("llm_api_key"):
-        data["llm_api_key_enc"] = base64.b64encode(
-            data["llm_api_key"].encode("utf-8")
-        ).decode("ascii")
-    data.pop("llm_api_key", None)
+    api_key = data.pop("llm_api_key", None)
+
+    # API key → keyring(唯一存储路径)
+    if api_key:
+        kr = _keyring_available()
+        if kr is None:
+            raise RuntimeError(
+                "keyring 未安装,拒绝将 API key 明文落盘。请运行: uv add keyring"
+            )
+        kr.set_password(KEYRING_SERVICE, KEYRING_USERNAME, api_key)
+
+    # 清理旧 base64 字段(迁移后不再需要)
+    data.pop("llm_api_key_enc", None)
+
     with open(cfg, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-    # 限制文件权限（Linux/Mac 生效；Windows 无害）
     try:
         os.chmod(cfg, 0o600)
     except OSError:
@@ -113,10 +139,17 @@ def save_settings(s: Settings) -> None:
 
 
 def reset_settings() -> None:
-    """删除 .user_config.json"""
+    """删除 .user_config.json + 清除 keyring 中的 API key"""
     cfg = _config_path()
     if cfg.exists():
         cfg.unlink()
+    # 清除 keyring 里的 key(strix M1)
+    kr = _keyring_available()
+    if kr is not None:
+        try:
+            kr.delete_password(KEYRING_SERVICE, KEYRING_USERNAME)
+        except Exception:
+            pass  # 不存在则忽略
 
 
 def has_valid_settings() -> bool:

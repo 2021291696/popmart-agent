@@ -11,6 +11,7 @@
 """
 import time
 import os
+import html
 from pathlib import Path
 import streamlit as st
 
@@ -73,6 +74,7 @@ def _is_unsafe_url(url: str) -> tuple[bool, str]:
     - 公网地址必须 https（防 key 明文）；http 仅允许 localhost 本地开发
     """
     import ipaddress
+    import socket
     from urllib.parse import urlparse
     try:
         parsed = urlparse(url.strip())
@@ -84,20 +86,36 @@ def _is_unsafe_url(url: str) -> tuple[bool, str]:
         return True, f"不支持的协议 '{scheme}'（仅 http/https）"
     if not host:
         return True, "URL 缺少 host"
-    # 拒绝云元数据/链路本地
-    if host.startswith("169.254."):
-        return True, "拒绝云元数据地址（防 SSRF）"
-    # IP 字面量 → 检查私有/回环/链路本地/保留段
-    try:
-        ip = ipaddress.ip_address(host)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            return True, "拒绝内网/回环地址（防 SSRF）"
-    except ValueError:
-        pass  # 主机名，走内部后缀检查
+
+    def _ip_is_dangerous(ip_obj) -> bool:
+        return (ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local
+                or ip_obj.is_reserved or ip_obj.is_multicast or ip_obj.is_unspecified)
+
+    # 显式 localhost 是唯一允许的内网目标(用户自建本地 LLM 代理场景)
+    _is_explicit_localhost = host in ("localhost", "127.0.0.1", "::1")
+
     # 拒绝内部主机名后缀
     if any(host.endswith(s) for s in (".internal", ".local", ".corp", ".localdomain")):
         return True, "拒绝内部主机名（防 SSRF）"
-    if scheme == "http" and host not in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):
+
+    # 安全(strix M2):解析主机名到 IP 再校验,防 DNS rebinding + 十进制/八进制 IP 编码绕过。
+    # 之前只查字面量 hostname,127.0.0.1.nip.io / 2130706433 等都能绕过。
+    # 关键:非显式 localhost 的主机名若解析到内网 IP,一律拒绝(挡住 rebinding)。
+    try:
+        addrinfos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return True, f"无法解析主机名 '{host}'（防 SSRF）"
+    for info in addrinfos:
+        ip_str = info[4][0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return True, f"解析出非法 IP '{ip_str}'（防 SSRF）"
+        if _ip_is_dangerous(ip) and not _is_explicit_localhost:
+            return True, f"主机名解析到内网/保留地址 {ip_str}（防 SSRF/DNS rebinding）"
+
+    # http 仅允许 localhost 本地开发
+    if scheme == "http" and not _is_explicit_localhost:
         return True, "公网地址必须用 https（防止 API key 明文传输）"
     return False, ""
 
@@ -410,13 +428,14 @@ def _render_analysis(last: dict, show_reasoning: bool):
             )
 
             # Agent 结论（始终可见）
+            # 安全：final_ans 来自 LLM,html.escape 防 XSS(scraped→RAG→LLM→HTML 链路)
             if final_ans:
                 st.markdown(
                     f"""<div style="font-family:var(--font-body);font-size:0.92rem;
                         line-height:1.7;color:var(--fg-2);padding:0.6rem 0.9rem;
                         background:var(--bg-2);border-radius:6px;margin-bottom:0.6rem;
                         border-left:3px solid var(--accent);">
-                        {final_ans}
+                        {html.escape(str(final_ans))}
                     </div>""",
                     unsafe_allow_html=True,
                 )
@@ -438,14 +457,16 @@ def _render_analysis(last: dict, show_reasoning: bool):
                             except Exception:
                                 pass
 
+                        # 安全：action 来自 LLM 输出,html.escape 防 XSS
                         st.markdown(
                             f"""<div style="font-family:var(--font-mono);font-size:0.72rem;
                                 color:var(--accent);letter-spacing:0.05em;margin:0.8rem 0 0.3rem;
                                 padding-left:0.4rem;border-left:2px solid var(--accent);">
-                              STEP {i} · {action}
+                              STEP {i} · {html.escape(str(action))}
                             </div>""",
                             unsafe_allow_html=True,
                         )
+                        # 安全：thought 来自 LLM 输出,html.escape 防 XSS
                         if thought:
                             st.markdown(
                                 f"""<div style="font-family:var(--font-body);font-size:0.9rem;
@@ -453,18 +474,19 @@ def _render_analysis(last: dict, show_reasoning: bool):
                                     background:var(--bg-2);border-radius:4px;margin-bottom:0.4rem;">
                                   <span style="color:var(--fg-3);font-family:var(--font-mono);
                                        font-size:0.66rem;letter-spacing:0.08em;">思考</span><br>
-                                  {thought}
+                                  {html.escape(str(thought))}
                                 </div>""",
                                 unsafe_allow_html=True,
                             )
+                        # 安全：action / action_in 来自 LLM 输出,html.escape 防 XSS
                         st.markdown(
                             f"""<div style="font-family:var(--font-mono);font-size:0.72rem;
                                 color:var(--fg-3);padding-left:0.8rem;margin:0.2rem 0;">
-                              <span style="color:var(--fg-2);">→ 执行:</span> {action}
+                              <span style="color:var(--fg-2);">→ 执行:</span> {html.escape(str(action))}
                             </div>
                             <div style="font-family:var(--font-mono);font-size:0.72rem;
                                 color:var(--fg-3);padding-left:0.8rem;margin:0.2rem 0;">
-                              <span style="color:var(--fg-2);">→ 输入:</span> {str(action_in)[:300]}
+                              <span style="color:var(--fg-2);">→ 输入:</span> {html.escape(str(action_in)[:300])}
                             </div>""",
                             unsafe_allow_html=True,
                         )
@@ -504,15 +526,52 @@ def _render_analysis(last: dict, show_reasoning: bool):
         })
 
 
-def _check_auth() -> bool:
-    """认证门控。
+def _redact_secrets(text: str) -> str:
+    """从日志文本中抹除敏感信息(strix M3 修复)。
 
-    - 未设 STREAMLIT_PASSWORD 环境变量 → 本地开发模式，跳过认证
-    - 设了 → 要求登录（用户名 STREAMLIT_USER 默认 admin，密码 STREAMLIT_PASSWORD）
+    脱敏对象:API key(sk-/tp- 前缀长串)、Authorization Bearer、
+    settings.llm_api_key 局部变量值。写日志前必须调用。
     """
+    import re
+    if not text:
+        return text
+    # API key 常见前缀 + 长串(sk-cp-.../tp-.../sk-...)
+    text = re.sub(r"(sk-[a-zA-Z]{0,4}-?[A-Za-z0-9_\-]{20,})", "sk-***REDACTED***", text)
+    text = re.sub(r"(tp-[A-Za-z0-9_\-]{20,})", "tp-***REDACTED***", text)
+    # Authorization: Bearer xxx
+    text = re.sub(r"(Bearer\s+)[A-Za-z0-9_\-\.]+", r"\1***REDACTED***", text)
+    # llm_api_key='xxx' / "llm_api_key": "xxx"
+    text = re.sub(
+        r"(llm_api_key['\"]?\s*[:=]\s*['\"])[^'\"]+(['\"])",
+        r"\1***REDACTED***\2",
+        text,
+    )
+    return text
+
+
+def _check_auth() -> bool:
+    """认证门控（默认 fail-closed）。
+
+    安全策略（strix C3 修复）：
+    - 设了 STREAMLIT_PASSWORD → 要求登录
+    - 没设 + 设了 ALLOW_LOCAL_DEV=1 → 本地开发放行(用户显式声明)
+    - 没设 + 没 ALLOW_LOCAL_DEV → 拒绝启动(防止误部署到网络时静默放行)
+
+    密码比较用 hmac.compare_digest(防时序侧信道)。
+    """
+    import hmac
+
     required_password = os.getenv("STREAMLIT_PASSWORD", "")
     if not required_password:
-        return True  # 本地开发模式，无 auth
+        # 无密码:仅在显式声明本地开发时放行,否则 fail-closed
+        if os.getenv("ALLOW_LOCAL_DEV", "").lower() in ("1", "true", "yes"):
+            return True
+        st.error(
+            "🔒 未配置认证。请设置环境变量 STREAMLIT_PASSWORD 启用登录,"
+            "或设置 ALLOW_LOCAL_DEV=1 显式声明本地开发模式。"
+        )
+        st.caption("拒绝启动的原因:防止未加密的 API key 和竞品数据在网络上裸奔。")
+        return False
     if st.session_state.get("authenticated"):
         return True
     st.warning("🔒 请先登录以访问系统")
@@ -523,7 +582,10 @@ def _check_auth() -> bool:
         password = st.text_input("密码", type="password", key="auth_pwd")
     if st.button("登录", key="auth_login"):
         expected_user = os.getenv("STREAMLIT_USER", "admin")
-        if username == expected_user and password == required_password:
+        # hmac.compare_digest 防时序攻击(strix C3)
+        user_ok = hmac.compare_digest(username, expected_user)
+        pass_ok = hmac.compare_digest(password, required_password)
+        if user_ok and pass_ok:
             st.session_state.authenticated = True
             st.rerun()
         else:
@@ -622,15 +684,16 @@ def main():
                     action = sd.get("action", "—")
                     thought = (sd.get("thought") or "")[:150]
                     llm_n = sd.get("llm_calls", 0)
+                    # 安全：action / thought 来自 LLM 输出,html.escape 防 XSS
                     step_container.markdown(
                         f"""<div style="font-family:var(--font-mono);font-size:0.72rem;
                             line-height:1.55;margin-bottom:0.35rem;">
-                          <span style="color:var(--accent);font-weight:500;">{agent}</span>
+                          <span style="color:var(--accent);font-weight:500;">{html.escape(str(agent))}</span>
                           <span style="color:var(--fg-3);"> · Step</span> {s}/{m}
-                          <span style="color:var(--fg-3);"> →</span> <b>{action}</b>
+                          <span style="color:var(--fg-3);"> →</span> <b>{html.escape(str(action))}</b>
                           <span style="color:var(--fg-3);font-size:0.66rem;"> · LLM #{llm_n}</span>
                           <div style="font-size:0.64rem;color:var(--fg-3);padding-left:0.5rem;">
-                            {"💭 " + thought if thought else ""}
+                            {"💭 " + html.escape(str(thought)) if thought else ""}
                           </div>
                         </div>""",
                         unsafe_allow_html=True,
@@ -703,13 +766,24 @@ def main():
         except Exception as e:
             import traceback
             tb = traceback.format_exc()
-            with open("logs/app_error.log", "a", encoding="utf-8") as f:
-                f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {e}\n{tb}\n---\n")
-            st.error(f"未知错误:{type(e).__name__}: {e}（错误已记录到 logs/app_error.log）")
+            # 安全(strix M3):脱敏后再落盘,traceback 含 settings.llm_api_key 等局部变量
+            safe_tb = _redact_secrets(tb)
+            safe_msg = _redact_secrets(str(e))
+            log_dir = Path("logs")
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_path = log_dir / "app_error.log"
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {safe_msg}\n{safe_tb}\n---\n")
+            # 文件权限限 0o600(POSIX 生效;Windows 靠 NTFS ACL)
+            try:
+                os.chmod(log_path, 0o600)
+            except OSError:
+                pass
+            st.error(f"未知错误:{type(e).__name__}: {safe_msg}（错误已记录到 logs/app_error.log）")
             # 仅开发模式显示堆栈（STREAMLIT_DEBUG=1），生产环境不暴露内部路径
             if os.getenv("STREAMLIT_DEBUG", "").lower() in ("1", "true", "yes"):
                 with st.expander("详细堆栈（开发模式）", expanded=False):
-                    st.code(tb)
+                    st.code(safe_tb)
 
     # 从 session_state 渲染分析结果（拨动 toggle 不丢结果）
     last = st.session_state.get("last_analysis")
