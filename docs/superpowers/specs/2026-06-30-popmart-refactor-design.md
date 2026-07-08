@@ -6,6 +6,8 @@
 
 > ⚠️ **本 spec 取代** `D:\MyAIWorkspace\notes\实习\泡泡玛特项目\docs\superpowers\specs\2026-06-30-popmart-prod-optimize-design.md`（旧 spec）。旧 spec 是早期版本，缺少 hook/loop 设计，目标位置错误，保留仅作历史记录。
 
+> 📋 **实施状态**：本 spec 是 2026-06-30 的设计意图。实施过程中做了若干简化与偏离（TTL/retry/QualityGateHook/部分 Hook 事件未实现，ImprovementLoop v1 降级为质量门禁）。**代码为准**，详见末尾 **§15 实施状态与偏离日志**。
+
 ## 1. 目标与非目标
 
 ### 1.1 目标
@@ -692,3 +694,64 @@ tests/
 - [ ] MetricsHook 写入 `logs/metrics.jsonl`（消费方明确）
 - [ ] Hook 自身抛异常 → 仅记录到 logs/agent.log，不传播给主循环
 - [ ] Loop 跑满 max_iterations → 强制退出，不抛异常
+
+---
+
+## 15. 实施状态与偏离日志（2026-07-05 更新）
+
+> 本节记录 spec 设计与实际代码的偏离。**代码为准**，spec 反映原始意图。
+
+### 15.1 模块映射变更（spec → 实际）
+
+| spec 设计 | 实际实现 | 说明 |
+|-----------|---------|------|
+| `src/data_loader.py` + TTL 预加载 | `src/pipeline/{sources,fetch,chunk,refresh_all}.py` + sidebar 手动刷新按钮 | 改为手动触发，YAGNI 砍掉启动时 TTL 预加载 |
+| `src/rag/scraper_{business,market,products}.py` | `src/pipeline/fetch.py` + 声明式 `sources.py` | N 个 scraper 合并为单 `fetch_all` |
+| `src/tools/tool_manager.py` + `tool_schema.py` | `src/tools/impl.py` | 工具构造 + 描述合并 |
+| `src/agent/system_prompt.txt` | `src/agents/prompts/*.txt` + `agents_meta.py` | 一个默认 prompt → 每个 Agent 独立 prompt |
+| `src/deadlock_prevention.py` | 并入 `loop.py` 的 `max_iterations` | 单层兜底足够 |
+
+### 15.2 未实现 / 砍掉的 spec 目标
+
+| spec 条目 | 状态 | 取舍理由 |
+|-----------|------|---------|
+| §4 / §11.3 数据自动加载 + TTL | ❌ 砍 | 手动刷新按钮更直观，TTL 对面试 demo 过度设计 |
+| §7.2 `with_retry` 装饰器 | ❌ 砍 | LLM 调用频率低，超时直接提示用户重试 |
+| §8.2 `QualityGateHook` + `MetricsHook` | ❌ 部分 | 只实现 LoggingHook；质量评分外置到 `quality_inference.py`（独立模块，非 hook） |
+| §8.1 `ON_HALLUCINATION_DETECTED` | ❌ 砍 | 未实现 |
+| §8.1 8 个 ReAct 循环事件 | ❌ 删 | 定义后从未 trigger（死代码），2026-07-05 删除：`ON_LOOP_START/THOUGHT/ACTION/OBSERVATION/LOOP_END/TOOL_CALL/TOOL_RESULT/QUALITY_FAIL` |
+| §9.5 `deadlock_prevention` | ❌ 合并 | 并入 `loop.max_iterations` |
+
+### 15.3 ImprovementLoop 降级（v1）
+
+spec §9 设计了完整的"定向重跑"闭环。**v1 诚实降级为质量门禁**：
+- 跑完找未达标 Agent → 标 `quality_warning=True` + `remaining_failed`，UI 显示黄色横幅。
+- **不做 rerun**（`rerun_subtask` 已删除；真复评 + 重新 synthesize 留作 v2）。
+- 理由：端到端 rerun 涉及 4 个互锁问题（original_query 缓存、真复评、app.py 读 final、重新 synthesize），v1 先把质量告警做对，v2 再做重跑。
+- 面试讲法："自愈 v1 = 质量门禁 + 告警；v2 路线 = 定向重跑闭环"。
+
+### 15.4 配置默认值变更
+
+spec §5.1 示例 deepseek。实际默认：`provider=openai` + `base_url=https://api.minimaxi.com/v1` + `model=MiniMax-M3`。
+原因：项目切到 MiniMax；MiniMax `/anthropic` 端点对中文返回空，统一走 OpenAI 兼容协议。
+`load_settings` 含迁移逻辑：旧 `.user_config.json` 若存了 `provider=anthropic` + minimax URL，自动迁到 openai + /v1。
+
+### 15.5 embedding 策略（v1 占位）
+
+`src/rag/embed.py` 是 1-gram 字符频次向量（非语义），作零依赖占位。`metrics.json` 显示分析题准确率 ~20%，部分源于此。v2 升级路径：char bigram + TF-IDF（仍零依赖）或 sentence-transformers。
+
+### 15.6 路由数据驱动（spec 之外的新增）
+
+`orchestrator._decompose` 不再硬编码关键词，改读 `agents_meta._AGENT_META[name]["keywords"]` + `query_template`。加新 Agent 只改 `agents_meta.py`，真正实现 spec §3.2 暗示的"声明式扩展"。
+
+### 15.7 仍保留 spec 设计的部分
+
+- §3 orchestrator 状态机（8 状态）✓
+- §6 四类 logger 配置 ✓（注：`tool.log` / `rag.log` 配置了但当前无写入方，v2 接入）
+- §8.4 hook 行为约束（仅记录、失败不传播）✓
+- §9.6 max_iterations 兜底 ✓
+- §10 测试套件 ✓（覆盖盲区见 §15.8）
+
+### 15.8 已知测试盲区（v1）
+
+未覆盖：`pipeline/*`、`tools/impl.py`、`rag/retriever`（仅 `build_prompt` 测）、`rag/embed`、`llm_client`、`shared_context.detect_conflicts`、orchestrator `execute/_synthesize` 端到端。v2 补集成测试。
