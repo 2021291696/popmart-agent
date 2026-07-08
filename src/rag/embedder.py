@@ -23,16 +23,17 @@ class Embedder(ABC):
 class APIEmbedder(Embedder):
     """调用 LLM provider 的 embedding endpoint。"""
 
-    def __init__(self, settings: "Settings"):
+    def __init__(self, settings: "Settings", mode: str = "db"):
         self.base_url = settings.llm_base_url.rstrip("/")
         self.api_key = settings.llm_api_key
         self.model = settings.embedding_model or self._default_model()
         self.timeout = settings.llm_timeout_sec
+        self.mode = mode  # "db"=入库, "query"=检索
 
     def _default_model(self) -> str:
         base = self.base_url.lower()
         if "minimaxi" in base:
-            return "embedding-01"
+            return "embo-01"
         if "openai" in base or "deepseek" in base:
             return "text-embedding-3-small"
         return "text-embedding-3-small"
@@ -42,7 +43,13 @@ class APIEmbedder(Embedder):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        payload = {"model": self.model, "input": texts}
+        # OpenAI 格式: {"input": [...]}; MiniMax 格式: {"texts": [...]}
+        is_minimax = "minimaxi" in self.base_url.lower()
+        payload = {"model": self.model}
+        payload["texts" if is_minimax else "input"] = texts
+        # MiniMax 必填 type 字段: db(入库) / query(检索)
+        if is_minimax:
+            payload["type"] = self.mode
         resp = httpx.post(
             f"{self.base_url}/embeddings",
             headers=headers,
@@ -51,7 +58,13 @@ class APIEmbedder(Embedder):
         )
         resp.raise_for_status()
         data = resp.json()
-        return [item["embedding"] for item in data["data"]]
+        # OpenAI 格式: {"data": [{"embedding": [...]}]}
+        # MiniMax 格式: {"vectors": [[...], [...]], "base_resp": {...}}
+        if "data" in data and isinstance(data["data"], list):
+            return [item["embedding"] for item in data["data"]]
+        if "vectors" in data and isinstance(data["vectors"], list):
+            return data["vectors"]
+        raise RuntimeError(f"未知的 embedding 响应格式: keys={list(data.keys())}")
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not self.api_key:
@@ -88,11 +101,16 @@ class LocalEmbedder(Embedder):
         return embeddings.tolist()
 
 
-def get_embedder(settings: "Settings") -> Embedder:
-    """根据配置返回 embedder，API 失败则降级本地模型。"""
+def get_embedder(settings: "Settings", mode: str = "db") -> Embedder:
+    """根据配置返回 embedder，API 失败则降级本地模型。
+
+    Args:
+        settings: 全局配置
+        mode: "db"=入库(默认), "query"=检索(MiniMax 需要区分,生成不同向量化)
+    """
     if settings.embedding_provider == "api":
         try:
-            embedder = APIEmbedder(settings)
+            embedder = APIEmbedder(settings, mode=mode)
             embedder.embed(["test"])
             return embedder
         except Exception as e:

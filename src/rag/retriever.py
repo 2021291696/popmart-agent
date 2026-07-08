@@ -19,8 +19,8 @@ def retrieve(query: str, top_k: int = 5, filter_kind: str | None = None) -> list
     """
     settings = load_settings()
 
-    # 1. query 向量化
-    embedder = get_embedder(settings)
+    # 1. query 向量化（mode="query" 让 MiniMax 走检索专用向量化）
+    embedder = get_embedder(settings, mode="query")
     query_embedding = embedder.embed([query])[0]
 
     # 2. 向量检索

@@ -6,7 +6,7 @@
 
 ## 做了什么
 
-设计了一个层级Orchestrator调度4个专业Agent的Multi-Agent架构，定义了每个Agent的职责边界、输入输出、依赖关系、工具清单，以及Agent间的协作流程和共享上下文格式。
+设计了一个层级Orchestrator调度3个专业Agent的Multi-Agent架构，配套独立的抓取管线（pipeline/）+ ChromaDB语义检索（RAG）。每个Agent职责清晰、工具解耦、共享上下文统一格式。
 
 ---
 
@@ -24,30 +24,44 @@
                          │  · 并行分发    │
                          │  · 冲突仲裁    │
                          │  · 最终汇总    │
-                         └──┬──┬──┬──┬─┘
-                            │  │  │  │  分发子任务
-               ┌────────────┘  │  │  └──────────┐
-               ▼               ▼  ▼              ▼
-        ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-        │ IP情报   │  │ 供应链    │  │ 消费者    │  │ 防伪溯源  │
-        │ Agent    │  │ Agent    │  │ 洞察Agent│  │ Agent    │
-        │          │  │          │  │          │  │          │
-        │ 监测IP   │  │ 配货建议  │  │ RAG问答  │  │ 假货检测  │
-        │ 情感分析 │  │ 信号扫描  │  │ 用户画像  │  │ 卖家分析  │
-        │ 竞品追踪 │  │ 价格监控  │  │ 评论挖掘  │  │ 举报生成  │
-        └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘
-              │             │             │             │
-              └─────────┬───┴─────────────┴─────────────┘
+                         └──┬──────┬─────┬─┘
+                            │      │     │  分发子任务
+               ┌────────────┘      │     └──────────┐
+               ▼                   ▼                ▼
+        ┌──────────┐        ┌──────────┐      ┌──────────┐
+        │ IP情报   │        │ 消费者    │      │ 防伪溯源  │
+        │ Agent    │        │ 洞察Agent│      │ Agent    │
+        │          │        │          │      │          │
+        │ 监测IP   │        │ RAG问答  │      │ 假货检测  │
+        │ 情感分析 │        │ 用户画像  │      │ 卖家分析  │
+        │ 竞品追踪 │        │ 评论挖掘  │      │ 举报生成  │
+        └─────┬────┘        └─────┬────┘      └─────┬────┘
+              │                   │                │
+              └─────────┬─────────┴────────────────┘
                         │  结果写回
                         ▼
                  ┌──────────────┐
-                 │  共享决策面板  │  ← JSON (shared_context.json)
+                 │  共享决策面板  │  ← shared_context.py
                  │  · task_id   │
                  │  · sub_tasks │
                  │  · results   │
                  │  · conflicts │
                  │  · final_ans │
                  └──────────────┘
+
+         ═══════════ 数据底座（被 Agent 调用）═══════════
+
+    ┌────────────────────┐         ┌──────────────────────────┐
+    │  src/pipeline/      │         │  src/rag/                 │
+    │  ├─ fetch.py        │  →→→    │  ├─ embedder.py           │
+    │  ├─ chunk.py        │ chunks  │  │  ├─ APIEmbedder        │
+    │  ├─ sources.py      │  →→→    │  │  └─ LocalEmbedder      │
+    │  └─ refresh_all.py  │ 4阶段   │  │     (sentence-trans.)  │
+    └────────────────────┘         │  ├─ vector_store.py       │
+                                   │  │  └─ ChromaDB wrapper   │
+                                   │  └─ retriever.py          │
+                                   │     (semantic cosine)     │
+                                   └──────────────────────────┘
 ```
 
 ---
@@ -56,10 +70,9 @@
 
 | Agent | 职责（一句话） | 输入 | 输出 | 依赖 | 工具数 |
 |-------|-------------|------|------|------|:--:|
-| **Orchestrator** | 任务拆解+分发+冲突仲裁+最终汇总 | 用户的自然语言问题 | 最终决策建议（Markdown报告） | 全部4个Agent | 3个 |
+| **Orchestrator** | 任务拆解+分发+冲突仲裁+最终汇总 | 用户的自然语言问题 | 最终决策建议（Markdown报告） | 全部Agent | 3个 |
 | **IP情报Agent** | IP热度监测+情感分析+竞品动态+设计师追踪 | Orchestrator拆解的子任务 | IP热度报告+异常告警 | 无（独立） | 5个 |
-| **供应链Agent** | 基于外部市场信号给出配货调整建议 | Orchestrator拆解的子任务 | 配货建议+数据支撑 | IP情报Agent（接收热度数据） | 4个 |
-| **消费者洞察Agent** | RAG知识库问答+消费者画像+评论挖掘 | Orchestrator拆解的子任务 | 分析报告+引用来源+置信度 | 无（独立） | 4个 |
+| **消费者洞察Agent** | RAG知识库问答+消费者画像+评论挖掘 | Orchestrator拆解的子任务 | 分析报告+引用来源+置信度 | RAG 检索 | 4个 |
 | **防伪溯源Agent** | 多模态假货检测+自动举报 | Orchestrator拆解的子任务 | 可疑listing清单+证据截图 | 无（独立） | 4个 |
 
 ---
@@ -72,8 +85,8 @@
 
 步骤2：Orchestrator判断问题类型 → 分解为子任务
    → 子任务A：IP情报Agent查Dimio近期舆情（发IP情报Agent）
-   → 子任务B：消费者洞察Agent查Dimio消费者画像变化（发消费者洞察Agent）
-   → 子任务C：供应链Agent查华东区Dimio库存+溢价率（发供应链Agent）
+   → 子任务B：消费者洞察Agent查Dimio消费者画像变化 + RAG检索（发消费者洞察Agent）
+   → 子任务C：防伪Agent查近期Dimio相关假货报告（发防伪Agent）
 
 步骤3：同层级子任务并行分发（A+B+C同时进行）
    每个Agent内部跑ReAct循环（Thought→Action→Observation）
@@ -81,19 +94,19 @@
 步骤4：各Agent结果写回共享面板（JSON）
    agent_results: {
      "ip_intelligence": {"summary": "...", "sentiment": "正面85%", "sources": [...]},
-     "consumer_insights": {"answer": "...", "confidence": 0.87, "sources": [...]},
-     "supply_chain": {"suggestion": "华东Dimio建议减配15%", "evidence": [...]}
+     "consumer_insights": {"answer": "...", "confidence": 0.87, "sources": ["chunk:c1", "chunk:c2"]},
+     "anti_counterfeit": {"suspicious_listings": [...], "risk_score": 0.23}
    }
 
 步骤5：Orchestrator检测矛盾
-   例：IP情报说"正面85%"→供应链说"溢价率下跌"→矛盾？
+   例：IP情报说"正面85%"→消费者洞察Agent RAG检索到"投诉率上升"→矛盾？
    Orchestrator追加一轮：请两个Agent各自引用数据来源重新回答
-   → 发现IP情报Agent默认搜了全球数据，供应链只看华东→解开
+   → 发现IP情报Agent默认搜了全球数据，消费者洞察聚焦近30天评论→解开
 
 步骤6：Orchestrator汇总 → 生成最终决策建议
-   "综合三个Agent的分析：Dimio全球热度在涨(+12%)，但华东区因竞品新品上市导致
-    短期承压。建议华东减配10-15%同时加强竞品动态监控。消费者对品质的关注集中在
-    毛绒品类的掉毛问题，已触发品控回溯建议。"
+   "综合三个Agent的分析：Dimio全球热度在涨(+12%)，但近期消费者投诉率上升
+    （集中在毛绒品类的掉毛问题）。防伪Agent未发现明显假货信号。建议短期加强
+    品控回溯 + 持续监控舆情拐点。"
 ```
 
 ---
@@ -112,7 +125,7 @@
   "sub_tasks": [
     {"id": "A", "agent": "ip_intelligence", "query": "Dimio近期舆情+情感分析（区分全球和华东）", "status": "done"},
     {"id": "B", "agent": "consumer_insights", "query": "Dimio消费者画像变化+华东区评论挖掘", "status": "done"},
-    {"id": "C", "agent": "supply_chain", "query": "华东区Dimio库存+二手溢价率趋势", "status": "done"}
+    {"id": "C", "agent": "anti_counterfeit", "query": "近期Dimio相关假货listing报告", "status": "done"}
   ],
   
   "agent_results": {
@@ -125,11 +138,12 @@
     "consumer_insights": {
       "answer": "...",
       "confidence": 0.87,
-      "sources": ["知识库文档ID: popmart_products", "知识库文档ID: popmart_market"]
+      "sources": ["chunk:c1", "chunk:c2"]
     },
-    "supply_chain": {
-      "suggestion": "华东Dimio建议减配15%",
-      "evidence": {...}
+    "anti_counterfeit": {
+      "suspicious_listings": [...],
+      "risk_score": 0.23,
+      "evidence": ["https://..."]
     }
   },
   
@@ -138,9 +152,9 @@
       "round": 1,
       "agent_a": "ip_intelligence",
       "claim_a": "Dimio热度上升",
-      "agent_b": "supply_chain",
-      "claim_b": "Dimio溢价率下跌",
-      "resolution": "维度不一致：IP情报看全球，供应链看华东。已追加一轮要求标注地域"
+      "agent_b": "consumer_insights",
+      "claim_b": "Dimio投诉率上升",
+      "resolution": "维度不一致：IP情报看全球舆情，消费者洞察聚焦近30天评论。已追加一轮要求标注时间窗口"
     }
   ],
   
@@ -191,12 +205,15 @@ IP情报Agent收到子任务："查Dimio近期舆情"
 | 层 | 技术 | 选型理由 |
 |----|------|---------|
 | **LLM** | DeepSeek-V3（原型）/ DeepSeek-R1（演示） | 高性价比+中文能力强 |
+| **LLM Client** | `src/llm_client.py`（OpenAI/Anthropic/MiniMax 多协议） | 统一接口，按 provider 自动切换 |
 | **Agent框架** | 纯Python手写ReAct（原型）/ LangGraph（生产建议） | 原型手写能理解每一行→面试逐行讲 |
-| **RAG向量库** | ChromaDB | 本地零配置+Python原生 |
-| **Embedding** | bge-large-zh | C-MTEB中文基准最优 |
-| **MCP工具** | 5个自研MCP标准工具 | 复用web-search-mcp经验 |
-| **共享上下文** | JSON文件（原型）/ Redis（生产建议） | 原型简单可追踪 |
-| **前端** | Streamlit | 最快出Demo |
+| **数据抓取** | `src/pipeline/`（fetch / chunk / sources / refresh_all） | 4 阶段管线，与 Agent 解耦 |
+| **RAG向量库** | ChromaDB | 本地零配置+Python原生，cosine 检索 |
+| **Embedding** | `src/rag/embedder.py`：API（OpenAI/MiniMax/DeepSeek）优先 + 本地 sentence-transformers（paraphrase-multilingual-MiniLM-L12-v2）降级 | API 失败自动降级到本地 384 维向量 |
+| **Agent 工具** | `src/tools/impl.py`（5 个真实实现） | 替换旧 tool_manager.py |
+| **共享上下文** | `src/shared_context.py`（dict 模块）/ Redis（生产建议） | 原型简单可追踪 |
+| **前端** | Streamlit + `src/theme.py` | 最快出Demo + 主题统一 |
+| **质量评估** | `src/quality_inference.py` | Agent 输出质量打分 |
 | **部署** | 本地运行（原型）/ Streamlit Cloud（演示） | 面试共享屏幕即可 |
 
 ---
@@ -219,13 +236,12 @@ IP情报Agent收到子任务："查Dimio近期舆情"
 
 ## 面试能讲什么
 
-> "我设计了四Agent的Orchestrator调度架构。[打开架构图]
+> "我设计了3-Agent的Orchestrator调度架构。[打开架构图]
 >
 > Orchestrator是Leader——负责拆任务、分发、汇总、仲裁。它的好处是每个Agent只做自己擅长的事，不越界也不推诿。
 >
-> 四个Agent覆盖泡泡玛特的四条业务线：
+> 三个Agent覆盖泡泡玛特的核心业务线：
 > - IP情报Agent做外部信号监测（社交媒体+竞品+设计师）
-> - 供应链Agent做配货策略优化（外部信号→内部决策建议）
 > - 消费者洞察Agent做RAG知识库问答（基于真实数据、强制引用来源）
 > - 防伪Agent做多模态假货检测（图像+价格+卖家行为融合判断）
 >

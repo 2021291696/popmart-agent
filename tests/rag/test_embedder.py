@@ -84,7 +84,7 @@ def test_api_embedder_default_model_minimaxi():
         embedding_model="",
     )
     embedder = APIEmbedder(settings)
-    assert embedder.model == "embedding-01"
+    assert embedder.model == "embo-01"
 
 
 def test_api_embedder_default_model_openai():
