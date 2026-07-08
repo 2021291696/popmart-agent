@@ -1,4 +1,4 @@
-"""Orchestrator 状态机 + rerun_subtask 测试"""
+"""Orchestrator 状态机 + _decompose 路由测试"""
 from src.orchestrator import Orchestrator, OrchestratorState
 
 

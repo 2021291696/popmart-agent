@@ -8,7 +8,6 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 
 class JsonFormatter(logging.Formatter):
@@ -63,6 +62,3 @@ def setup_logging(log_dir: str = "logs", level: str = "INFO") -> dict[str, loggi
     return loggers
 
 
-def log_event(logger: logging.Logger, data: dict[str, Any]) -> None:
-    """便捷函数：写一条 JSON 行日志"""
-    logger.info("", extra={"log_data": data})

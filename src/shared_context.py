@@ -32,7 +32,9 @@ class SharedContext:
     原型阶段用dict+JSON文件——简单、可追踪、面试可直接展示。
     """
 
-    def __init__(self, task_id: str, user_query: str, max_rounds: int = 5):
+    def __init__(self, task_id: str, user_query: str, max_rounds: int = 2):
+        # max_rounds=2：冲突仲裁上限。每轮让矛盾双方引用来源重答，
+        # 2 轮足够解开大多数矛盾；5 轮会放大 LLM 调用（最坏 5×2×5=50 次）。
         self.task_id = task_id
         self.user_query = user_query
         self.max_rounds = max_rounds
@@ -117,24 +119,3 @@ class SharedContext:
                 return f"...{text[start:end]}..."
         return f"{agent_name}的趋势判断"
 
-    def to_dict(self) -> dict:
-        """导出为字典"""
-        return {
-            "task_id": self.task_id,
-            "user_query": self.user_query,
-            "created_at": self.created_at,
-            "max_rounds": self.max_rounds,
-            "sub_tasks": self.sub_tasks,
-            "agent_results": self.agent_results,
-            "conflicts": self.conflicts,
-            "round_history": self.round_history,
-            "final_answer": self.final_answer
-        }
-
-    def save(self, filepath: str):
-        """保存到JSON文件——面试时打开看完整协作记录"""
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
-
-    def __repr__(self):
-        return f"SharedContext({self.task_id}, {len(self.agent_results)} agents, {len(self.conflicts)} conflicts)"

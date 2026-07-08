@@ -4,7 +4,7 @@ from src.config import Settings, has_valid_settings
 
 def test_settings_defaults():
     s = Settings()
-    assert s.llm_model == "deepseek-chat"
+    assert s.llm_model == "MiniMax-M3"
     assert s.quality_threshold == 0.6
     assert s.loop_max_iterations == 2
 

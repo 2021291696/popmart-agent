@@ -19,7 +19,6 @@ def mock_settings():
         llm_model="deepseek-chat",
         llm_timeout_sec=5,
         data_dir="src/rag/data",
-        data_ttl_hours=24,
         log_level="DEBUG",
         log_dir="logs",
         quality_threshold=0.6,
