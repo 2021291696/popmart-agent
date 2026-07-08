@@ -36,7 +36,9 @@ def build_prompt(query: str, retrieved_chunks: list[dict]) -> str:
     """构建完整的Prompt：SystemPrompt + 检索结果 + 用户问题"""
     context_parts = []
     for i, chunk in enumerate(retrieved_chunks):
-        source_tag = f"[来源:{chunk.get('global_id', chunk.get('section', 'unknown'))}]"
+        chunk_meta = chunk.get("metadata", {}) or {}
+        source_id = chunk.get("id") or chunk_meta.get("section") or "unknown"
+        source_tag = f"[来源:{source_id}]"
         context_parts.append(f"--- 资料{i+1} {source_tag} ---\n{chunk['text']}")
 
     context = "\n\n".join(context_parts)
@@ -66,27 +68,20 @@ def rag_query(query: str, top_k: int = 5, use_llm: bool = False,
     """
     from .retriever import retrieve
 
-    # 判断查询类型→选检索模式
+    # 事实查询要少而准，分析查询要更多上下文
     fact_keywords = ["多少", "哪年", "谁", "什么是", "定义", "价格", "营收"]
     is_fact = any(kw in query for kw in fact_keywords)
-    mode = "similarity" if is_fact else "mmr"
-    k = 3 if is_fact else 5
+    effective_k = min(3 if is_fact else 5, top_k)
 
-    results = retrieve(query, mode=mode, k=min(k, top_k))
+    results = retrieve(query, top_k=effective_k)
     prompt = build_prompt(query, results)
 
     if client and settings:
-        # 调用真实 LLM
-        response = client.chat.completions.create(
-            model=settings.llm_model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
+        answer = client.chat(
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            timeout=settings.llm_timeout_sec,
-        )
-        answer = response.choices[0].message.content.strip()
+        ).strip()
         confidence = 0.85 if len(results) >= 3 else 0.70
         confidence_label = (
             "确定(>90%)" if confidence >= 0.90
@@ -94,7 +89,7 @@ def rag_query(query: str, top_k: int = 5, use_llm: bool = False,
             else "不确定(<70%)"
         )
     else:
-        # 仅检索结果（原型阶段）
+        # 检索模式:不调 LLM,直接返回检索结果给上层做后续处理
         answer = "（检索模式）知识库检索完成，请查看 prompt 和 sources 字段。"
         confidence = 0.0
         confidence_label = "未调用LLM"
@@ -102,9 +97,12 @@ def rag_query(query: str, top_k: int = 5, use_llm: bool = False,
     result = {
         "query": query,
         "query_type": "fact" if is_fact else "analysis",
-        "retrieval_mode": mode,
+        "retrieval_mode": "cosine",  # 新版统一使用 cosine 向量检索
         "retrieved_chunks": len(results),
-        "sources": [r.get("global_id", r.get("section", "?")) for r in results],
+        "sources": [
+            r.get("id") or (r.get("metadata") or {}).get("section") or "?"
+            for r in results
+        ],
         "prompt": prompt,
         "answer": answer,
         "confidence": confidence,

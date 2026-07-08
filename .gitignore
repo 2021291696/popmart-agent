@@ -8,3 +8,9 @@ logs/
 dist/
 build/
 .pytest_cache/
+
+# ChromaDB 向量数据库
+src/rag/chroma_db/
+
+# 旧 embedding 备份
+src/rag/data/*.bak
