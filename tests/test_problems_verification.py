@@ -161,22 +161,48 @@ class TestFallbackReportRemoved:
             orch_module.LLMClient = original_client
 
 
-class TestPresetButtonsExist:
-    """验证 Streamlit 当前有预设按钮（准备删除）"""
+class TestPresetButtonsRemoved:
+    """验证 Streamlit 预设按钮已删除（只保留自由提问）"""
 
-    def test_preset_scenarios_defined(self):
-        """app.py 中定义了预设场景"""
-        # 读取 app.py 检查是否有 PRESET_SCENARIOS
+    def test_preset_scenarios_removed(self):
+        """app.py 中已删除 PRESET_SCENARIOS（按钮已删除）"""
         app_path = "app.py"
         with open(app_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        print(f"\n[预设按钮存在性]")
+        print(f"\n[预设按钮已删除]")
         has_preset = "PRESET_SCENARIOS" in content
+        has_preset_button = 'key=f"preset_' in content
         print(f"  → app.py 包含 PRESET_SCENARIOS: {has_preset}")
+        print(f"  → app.py 包含 preset_ 按钮 key: {has_preset_button}")
 
-        # 断言：当前有预设场景定义
-        assert has_preset, "app.py 应该定义 PRESET_SCENARIOS（准备删除）"
+        # 预设场景定义和按钮都已删除
+        assert not has_preset, "PRESET_SCENARIOS 应已删除"
+        assert not has_preset_button, "preset_ 按钮应已删除"
+
+    def test_chat_input_preserved(self):
+        """chat_input 仍然保留"""
+        app_path = "app.py"
+        with open(app_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        print(f"\n[chat_input 保留]")
+        has_chat = "st.chat_input" in content
+        print(f"  → app.py 包含 st.chat_input: {has_chat}")
+
+        assert has_chat, "st.chat_input 应保留"
+
+    def test_preset_queries_for_frontend(self):
+        """PRESET_QUERIES 仍保留（供 React 前端三张报告使用）"""
+        app_path = "app.py"
+        with open(app_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        print(f"\n[PRESET_QUERIES 保留]")
+        has_preset_queries = "PRESET_QUERIES" in content
+        print(f"  → app.py 包含 PRESET_QUERIES: {has_preset_queries}")
+
+        assert has_preset_queries, "PRESET_QUERIES 应保留供前端使用"
 
 
 if __name__ == "__main__":
