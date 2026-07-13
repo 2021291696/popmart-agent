@@ -80,13 +80,11 @@ class TestConflictDetectionFalsePositives:
 
         conflicts = ctx.detect_conflicts()
 
-        print(f"\n[冲突检测误报] Agent A: '热度上升' vs Agent B: '投诉量下降'")
-        print(f"  → 检测到冲突数: {len(conflicts)}")
-        if conflicts:
-            print(f"  → 冲突详情: {conflicts[0]}")
+        print(f"\n[冲突检测误报已修复] Agent A: '热度上升' vs Agent B: '投诉量下降'")
+        print(f"  → 检测到冲突数: {len(conflicts)}（LLM 正确判断为不矛盾）")
 
-        # 断言：当前实现会误报
-        assert len(conflicts) > 0, "关键词法应该误判为冲突（证明问题存在）"
+        # LLM 现在能正确判断"不同指标不算矛盾"
+        assert len(conflicts) == 0, "LLM 应该正确判断不同指标不矛盾"
 
     def test_same_metric_opposite_trend_should_conflict(self):
         """同一指标的相反趋势应该判定为冲突（这是合理的）"""
@@ -113,46 +111,54 @@ class TestConflictDetectionFalsePositives:
         assert len(conflicts) > 0, "同指标相反趋势应该被检测为冲突"
 
 
-class TestFallbackReportPlaceholder:
-    """验证 LLM 失败时会生成占位报告（而非诚实报错）"""
+class TestFallbackReportRemoved:
+    """验证 LLM 失败时不再生成占位报告，而是诚实报错"""
 
-    def test_llm_failure_generates_placeholder(self):
-        """LLM 失败时当前会生成占位报告"""
-        # 模拟 LLM 调用失败
+    def test_llm_failure_raises_error(self):
+        """LLM 失败时应该抛异常，不再生成 fallback"""
+        from src.error_handler import LLMError
+        from unittest.mock import MagicMock
+
         mock_client = MagicMock()
         mock_client.chat.side_effect = Exception("API key invalid")
 
-        mock_agents = {
-            "ip_intelligence": lambda q, ctx: {
-                "final_answer": "测试结果",
-                "steps": [],
-                "tool_stats": {},
+        # 直接替换模块级的 LLMClient
+        import src.orchestrator as orch_module
+        original_client = orch_module.LLMClient
+        orch_module.LLMClient = MagicMock(return_value=mock_client)
+
+        try:
+            mock_agents = {
+                "ip_intelligence": lambda q, ctx: {
+                    "final_answer": "测试结果",
+                    "steps": [],
+                    "tool_stats": {},
+                }
             }
-        }
 
-        settings = Settings()
-        orch = Orchestrator(mock_agents, settings)
-        # 注入 mock 的 LLM client
-        orch.client = mock_client
+            settings = Settings()
+            orch = Orchestrator(mock_agents, settings)
+            shared_ctx = SharedContext(task_id="test", user_query="测试")
+            shared_ctx.set_agent_result("ip_intelligence", {
+                "agent": "ip_intelligence",
+                "final_answer": "测试结果",
+                "quality_score": 0.85,
+            })
 
-        shared_ctx = SharedContext(task_id="test", user_query="测试")
-        shared_ctx.set_agent_result("ip_intelligence", {
-            "agent": "ip_intelligence",
-            "final_answer": "测试结果",
-            "quality_score": 0.85,
-        })
+            # 调用 _synthesize，应该抛 LLMError
+            with pytest.raises(LLMError) as exc_info:
+                orch._synthesize("测试", shared_ctx)
 
-        # 调用 _synthesize，此时 LLM 不可用
-        final_answer, answer_source = orch._synthesize("测试", shared_ctx)
+            error_msg = str(exc_info.value)
+            print(f"\n[LLM 失败行为]")
+            print(f"  → 异常类型: {type(exc_info.value).__name__}")
+            print(f"  → 异常消息: {error_msg[:100]}")
 
-        print(f"\n[Fallback 行为]")
-        print(f"  → answer_source: {answer_source}")
-        print(f"  → final_answer 前200字符: {final_answer[:200]}")
-
-        # 断言：当前实现会生成 fallback 占位报告
-        assert answer_source == "fallback", "LLM 失败应该标记为 fallback"
-        assert "(LLM 不可用" in final_answer or "未生成结构化数据" in final_answer, \
-            "fallback 报告应该包含占位文本（证明问题存在）"
+            # 验证异常消息包含可操作的提示
+            assert "API key" in error_msg or "网络" in error_msg or "重试" in error_msg, \
+                "异常消息应该包含可操作的提示"
+        finally:
+            orch_module.LLMClient = original_client
 
 
 class TestPresetButtonsExist:

@@ -400,31 +400,25 @@ class Orchestrator:
                     temperature=0.3,
                     max_tokens=3000,
                 ), "llm"
-            except Exception:
-                pass  # LLM 失败 → 降级
+            except Exception as e:
+                # LLM 失败时直接抛 LLMError，诚实报错，不生成占位报告
+                from .error_handler import LLMError
+                safe_error = e.__class__.__name__ + ": " + str(e)
+                raise LLMError(
+                    f"报告综合失败：{safe_error}。\n\n"
+                    "**可能原因：**\n"
+                    "- LLM API key 无效或过期\n"
+                    "- 网络连接超时\n"
+                    "- LLM 服务限流\n\n"
+                    "**建议操作：**\n"
+                    "1. 检查侧边栏配置中的 API key\n"
+                    "2. 检查网络连接\n"
+                    "3. 稍后重试"
+                ) from e
 
-        # 降级:规则拼接,仍按 5 段式结构
-        parts = [f"# 分析报告:{query}\n"]
-
-        parts.append("## 核心结论\n")
-        for name, text in agent_summaries.items():
-            parts.append(f"- 来自 {name} 的初步判断")
-        parts.append("")
-
-        parts.append("## 关键数据\n")
-        parts.append("- (LLM 不可用,未生成结构化数据)\n")
-
-        parts.append("## 分析\n")
-        for name, text in agent_summaries.items():
-            parts.append(f"### {name} 的发现\n{text}\n")
-
-        parts.append("## 风险提示\n")
-        parts.append("- LLM 精修不可用,以下结论未经二次校验,请人工核对\n")
-
-        parts.append("## 建议行动\n")
-        parts.append(f"1. 重新运行(LLM token plan 可能已耗尽)")
-        parts.append(f"2. 或手动验证各 Agent 给出的关键数字\n")
-
-        parts.append(f"\n---\n*生成时间:{time.strftime('%Y-%m-%d %H:%M:%S')} · 基于 {len(agent_summaries)} 个 Agent 调研*")
-
-        return "\n\n".join(parts), "fallback"
+        # 没有 LLM 配置时直接报错
+        from .error_handler import LLMError
+        raise LLMError(
+            "报告综合失败：未配置 LLM API key。\n\n"
+            "**请在侧边栏配置 API key 后重试。**"
+        )
