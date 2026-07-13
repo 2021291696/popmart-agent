@@ -12,6 +12,8 @@ import time
 from enum import Enum
 from typing import Any
 
+from .llm_client import LLMClient
+
 
 class TaskStatus(Enum):
     PENDING = "pending"
@@ -45,13 +47,34 @@ class SharedContext:
         self.conflicts: list[dict] = []
         self.round_history: list[dict] = []
         self.final_answer: str = ""
+        # [并发安全] 锁定的数据版本 (active collection 名), 用于审计和验收
+        self.data_version: str | None = None
+        self._meta: dict[str, Any] = {}
+        self._lock = __import__("threading").Lock()
 
     def set_agent_result(self, agent_name: str, result: dict):
-        """Agent将结果写入共享面板"""
-        self.agent_results[agent_name] = {
-            "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            **result
-        }
+        """Agent将结果写入共享面板 (线程安全)"""
+        import threading as _t
+        with self._lock:
+            self.agent_results[agent_name] = {
+                "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                **result
+            }
+
+    def set_meta(self, key: str, value: Any) -> None:
+        """写入元信息 (例如 wait_for_refresh, refresh_completed_during_wait)。"""
+        import threading as _t
+        with self._lock:
+            self._meta[key] = value
+
+    def get_meta(self, key: str) -> Any:
+        return self._meta.get(key)
+
+    def get_meta_snapshot(self) -> dict:
+        """返回元信息快照(调试/日志用)。"""
+        import threading as _t
+        with self._lock:
+            return dict(self._meta)
 
     def get_agent_result(self, agent_name: str) -> dict | None:
         """读取某个Agent的结果"""
@@ -59,53 +82,97 @@ class SharedContext:
 
     def detect_conflicts(self) -> list[dict]:
         """
-        [MULTI] 冲突检测
+        [MULTI] LLM 语义冲突检测
 
-        面试讲：这是Multi-Agent系统最容易出Bug的地方——
-        两个Agent说矛盾的话不一定是真矛盾，可能是指标定义不同。
+        用 LLM 判断两个 Agent 结论是否真矛盾。
+        规则：不同指标/不同地域/不同时间段的相反结论不算矛盾。
 
-        比如IP情报Agent说"Dimio热度在涨"（搜了全球数据），
-        供应链Agent说"Dimio溢价率在跌"（只看华东）。
-        不是矛盾，是指代不同→Prompt中加了"请明确区分地域"就解决了。
-
-        这个调试经历教会我：Multi-Agent 90%的问题不是代码问题，
-        是Prompt对齐问题——两个Agent的"语言"要对齐。
+        LLM 失败时降级为不检测（避免误报）。
         """
+        import logging
+        from .config import load_settings
+
+        agent_names = list(self.agent_results.keys())
+        if len(agent_names) < 2:
+            self.conflicts = []
+            return self.conflicts
+
         self.conflicts = []
 
-        # 简化实现：检查是否有Agent的结果标记为"矛盾"
-        # 生产环境应该用NLI（自然语言推理）做语义矛盾检测
-        agent_names = list(self.agent_results.keys())
+        # 用 LLM 检测
+        try:
+            settings = load_settings()
+            client = LLMClient(settings)
 
-        for i in range(len(agent_names)):
-            for j in range(i + 1, len(agent_names)):
-                a_result = self.agent_results[agent_names[i]]
-                b_result = self.agent_results[agent_names[j]]
+            # 两两检测
+            for i in range(len(agent_names)):
+                for j in range(i + 1, len(agent_names)):
+                    agent_a = agent_names[i]
+                    agent_b = agent_names[j]
 
-                # 简化：检查是否有相反的趋势判断
-                a_text = json.dumps(a_result, ensure_ascii=False).lower()
-                b_text = json.dumps(b_result, ensure_ascii=False).lower()
+                    result_a = self.agent_results.get(agent_a, {})
+                    result_b = self.agent_results.get(agent_b, {})
 
-                # 简单的矛盾检测：关键词同时出现在两个结果中
-                opposite_pairs = [
-                    (["上升", "增长", "涨", "增加"], ["下降", "下滑", "跌", "减少"]),
-                ]
+                    answer_a = result_a.get("final_answer", "")
+                    answer_b = result_b.get("final_answer", "")
 
-                for up_words, down_words in opposite_pairs:
-                    a_has_up = any(w in a_text for w in up_words)
-                    a_has_down = any(w in a_text for w in down_words)
-                    b_has_up = any(w in b_text for w in up_words)
-                    b_has_down = any(w in b_text for w in down_words)
+                    if not answer_a or not answer_b:
+                        continue
 
-                    if (a_has_up and b_has_down) or (a_has_down and b_has_up):
+                    system_prompt = """你是冲突检测系统。判断两个分析结论是否矛盾。
+
+规则：
+- 针对不同指标（如"热度"vs"投诉"）的相反趋势不算矛盾
+- 针对不同地域/时间段的相反趋势不算矛盾
+- 只有同一指标、同一维度的相反结论才算矛盾
+
+输出 JSON:
+{
+  "is_contradiction": true/false,
+  "reason": "说明是否矛盾及原因"
+}"""
+
+                    prompt = f"""Agent A ({agent_a}): {answer_a}
+
+Agent B ({agent_b}): {answer_b}
+
+判断是否矛盾。"""
+
+                    response = client.chat(
+                        system=system_prompt,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.1,
+                        max_tokens=500,
+                    )
+
+                    # 解析 JSON
+                    response_clean = response.strip()
+                    if response_clean.startswith("```json"):
+                        response_clean = response_clean[7:]
+                    if response_clean.startswith("```"):
+                        response_clean = response_clean[3:]
+                    if response_clean.endswith("```"):
+                        response_clean = response_clean[:-3]
+                    response_clean = response_clean.strip()
+
+                    result = json.loads(response_clean)
+
+                    if result.get("is_contradiction", False):
                         self.conflicts.append({
-                            "agent_a": agent_names[i],
-                            "agent_b": agent_names[j],
-                            "claim_a": self._extract_trend_claim(agent_names[i], a_text),
-                            "claim_b": self._extract_trend_claim(agent_names[j], b_text),
+                            "agent_a": agent_a,
+                            "agent_b": agent_b,
+                            "claim_a": answer_a[:100],
+                            "claim_b": answer_b[:100],
                             "detected_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-                            "resolution": "pending"
+                            "resolution": "pending",
+                            "reason": result.get("reason", "语义冲突"),
                         })
+
+        except Exception as e:
+            # LLM 失败时降级为不检测（而非误报）
+            log = logging.getLogger("shared_context")
+            log.warning(f"LLM 冲突检测失败，降级为不检测: {e}")
+            self.conflicts = []
 
         return self.conflicts
 
