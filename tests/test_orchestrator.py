@@ -1,8 +1,17 @@
 """Orchestrator 状态机 + _decompose 路由测试"""
+from unittest.mock import MagicMock, patch
 from src.orchestrator import Orchestrator, OrchestratorState
 
 
-def test_decompose_ip_query(mock_settings):
+@patch('src.orchestrator.LLMClient')
+def test_decompose_ip_query(mock_llm_class, mock_settings):
+    """IP 相关问题应该由 ip_intelligence 处理"""
+    mock_client = MagicMock()
+    mock_client.chat.return_value = """{
+        "sub_tasks": [{"agent_name": "ip_intelligence", "query": "LABUBU 热度"}]
+    }"""
+    mock_llm_class.return_value = mock_client
+
     def mock_agent(q, ctx):
         return {"answer": "test"}
     orch = Orchestrator({"ip_intelligence": mock_agent}, mock_settings)
@@ -10,7 +19,15 @@ def test_decompose_ip_query(mock_settings):
     assert any(t.agent_name == "ip_intelligence" for t in tasks)
 
 
-def test_decompose_general_query(mock_settings):
+@patch('src.orchestrator.LLMClient')
+def test_decompose_general_query(mock_llm_class, mock_settings):
+    """通用问题至少返回一个子任务"""
+    mock_client = MagicMock()
+    mock_client.chat.return_value = """{
+        "sub_tasks": [{"agent_name": "consumer_insights", "query": "泡泡玛特整体分析"}]
+    }"""
+    mock_llm_class.return_value = mock_client
+
     def mock_agent(q, ctx):
         return {"answer": "test"}
     orch = Orchestrator({"consumer_insights": mock_agent}, mock_settings)

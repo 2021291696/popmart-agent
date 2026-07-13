@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 
 from .config import Settings
 from .hooks import hooks, HookEvent
+from .llm_client import LLMClient
 from .shared_context import SharedContext, TaskStatus
 
 
@@ -98,10 +99,30 @@ class Orchestrator:
 
         shared_ctx = SharedContext(task_id=task_id, user_query=user_query)
 
+        # [并发安全] 推理开始时锁定 active collection 名, 整次分析用它
+        # 防止后台抓取切换指针导致推理中途读到不一致的数据
+        try:
+            from .rag.retriever import get_active_collection_name
+            data_version = get_active_collection_name()
+        except Exception:
+            data_version = None
+        shared_ctx.data_version = data_version
+
+        # Refresh writes to staging. Keep using the active snapshot captured above.
+        try:
+            from .pipeline.refresh_state import get_refresh_state
+            refresh_state = get_refresh_state()
+            shared_ctx.set_meta(
+                "refresh_in_progress", refresh_state.get("running", False)
+            )
+        except ImportError:
+            pass
+
         # [MULTI] 步骤①+②：拆解子任务
         self.state = OrchestratorState.DECOMPOSE
         hooks.trigger(HookEvent.ON_DECOMPOSE, {
             "task_id": task_id, "query": user_query, "state": self.state.value,
+            "data_version": data_version,
         })
         sub_tasks = self._decompose(user_query)
         shared_ctx.sub_tasks = [
@@ -116,6 +137,9 @@ class Orchestrator:
         })
 
         self.state = OrchestratorState.EXECUTE
+        # ponytail: 先保持串行执行。并行可减半 wall-clock，但当前 LLMClient/ChromaDB/embedding
+        # 在线程安全上未验证，贸然并行会导致子任务静默失败（见 2026-07-09 实测）。
+        # 若后续要加速，优先方案是：① 加结果缓存 ② 验证线程安全后再并行。
         for st in sub_tasks:
             if st.agent_name in self.agents:
                 st.started_at = time.time()
@@ -183,38 +207,89 @@ class Orchestrator:
 
     def _decompose(self, query: str) -> list[SubTask]:
         """
-        [MULTI] 任务分解
+        [MULTI] 任务分解（LLM 驱动）
 
-        面试讲：拆任务的三层逻辑——
-        ① 领域识别：这个问题涉及IP/供应链/消费者/防伪哪个领域？
-        ② 子问题拆分：每个领域对应什么子问题？
-        ③ 依赖标注：哪个子任务需要等其他子任务的结果？
-
-        原型阶段用规则（关键词匹配），关键词表来自 agents_meta._AGENT_META，
-        加新 Agent 只需在 agents_meta 加 keywords 字段，无需改这里。
-        生产环境可以让Orchestrator自己调LLM做任务分解。
+        用 LLM 把用户问题分解成子任务列表。LLM 失败时直接抛 LLMError，不降级。
         """
         from .agents_meta import _AGENT_META
+        import json
 
-        sub_tasks = []
-        for agent_name, meta in _AGENT_META.items():
-            if any(kw in query for kw in meta.get("keywords", [])):
-                template = meta.get("query_template", "{q}")
+        # 构造 agent 说明
+        agent_descriptions = []
+        for name, meta in _AGENT_META.items():
+            agent_descriptions.append(
+                f"- {name} ({meta['label']}): {', '.join(meta.get('keywords', [])[:5])} 等领域"
+            )
+
+        system_prompt = """你是泡泡玛特 Multi-Agent 系统的任务分解器。
+
+可用的专业 Agent:
+""" + "\n".join(agent_descriptions) + """
+
+根据用户问题，判断需要哪些 Agent 参与分析。
+
+输出 JSON 格式：
+{
+  "reasoning": "分析用户问题需要哪些专业领域",
+  "sub_tasks": [
+    {"agent_name": "agent名称", "query": "给该Agent的具体问题"}
+  ]
+}
+
+规则：
+- 如果问题与泡泡玛特业务无关，返回空 sub_tasks
+- 如果问题明确只涉及一个领域，只派一个 Agent
+- 如果问题涉及多个领域，派多个 Agent（每个子任务要具体）
+- agent_name 必须是上述可用 Agent 之一
+"""
+
+        try:
+            hooks.trigger(HookEvent.ON_DECOMPOSE, {"query": query})
+
+            # 局部创建 LLMClient
+            client = LLMClient(self.settings)
+
+            response = client.chat(
+                system=system_prompt,
+                messages=[{"role": "user", "content": query}],
+                temperature=0.3,
+                max_tokens=1000,
+            )
+
+            # 解析 JSON（容错：去掉可能的 markdown 包裹）
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.startswith("```"):
+                response_clean = response_clean[3:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            result = json.loads(response_clean)
+            sub_tasks_data = result.get("sub_tasks", [])
+
+            # 转换为 SubTask 对象
+            sub_tasks = []
+            for idx, st_data in enumerate(sub_tasks_data):
+                agent_name = st_data.get("agent_name")
+                agent_query = st_data.get("query", query)
+
+                # 验证 agent_name 合法
+                if agent_name not in _AGENT_META:
+                    continue
+
                 sub_tasks.append(SubTask(
-                    task_id=f"ST-{len(sub_tasks)+1}",
+                    task_id=f"ST-{idx+1}",
                     agent_name=agent_name,
-                    query=template.format(q=query),
+                    query=agent_query,
                 ))
 
-        # 没匹配到任何领域 → 兜底发 consumer_insights
-        if not sub_tasks:
-            sub_tasks.append(SubTask(
-                task_id="ST-1",
-                agent_name="consumer_insights",
-                query=query,
-            ))
+            return sub_tasks
 
-        return sub_tasks
+        except Exception as e:
+            from .error_handler import LLMError
+            raise LLMError(f"任务分解失败：{str(e)}。请检查 LLM 配置或稍后重试。") from e
 
     def _resolve_conflicts(self, ctx: SharedContext, round_num: int):
         """
@@ -257,10 +332,13 @@ class Orchestrator:
             if isinstance(data, dict) and "result" in data:
                 inner = data["result"]
                 if isinstance(inner, dict):
-                    text = (inner.get("final_answer")
-                            or inner.get("answer")
-                            or inner.get("summary")
-                            or json.dumps(inner, ensure_ascii=False)[:500])
+                    if inner.get("error"):
+                        text = f"（该 Agent 执行失败：{inner['error']}）"
+                    else:
+                        text = (inner.get("final_answer")
+                                or inner.get("answer")
+                                or inner.get("summary")
+                                or json.dumps(inner, ensure_ascii=False)[:500])
                 else:
                     text = str(inner)[:500]
                 agent_summaries[agent_name] = text
