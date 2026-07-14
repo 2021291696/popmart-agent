@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 
 from src.llm_client import LLMClient
+
+logger = logging.getLogger(__name__)
 
 
 ROUTER_PROMPT = """You are a routing assistant for a Pop Mart analytics product.
@@ -31,21 +34,21 @@ def recommend_page(query: str, llm: LLMClient | None = None) -> str:
             messages=[{"role": "user", "content": f"Query: {query}"}],
             temperature=0.1,
         )
-        match = re.search(r'\{.*\}', response, re.DOTALL)
+        match = re.search(r'\{.*?\}', response, re.DOTALL)
         if match:
             data = json.loads(match.group(0))
             page = data.get("page", "").lower()
             if page in ("executive", "supply", "risk"):
                 return page
     except Exception:
-        pass
+        logger.warning("LLM routing failed, falling back to keyword routing", exc_info=True)
 
     return _keyword_fallback(query)
 
 
 def _keyword_fallback(query: str) -> str:
     query = query.lower()
-    risk_keywords = ["投诉", "假货", "二手", "风险", "危机", "售后", "维权", " counterfeit", "risk", "complaint"]
+    risk_keywords = ["投诉", "假货", "二手", "风险", "危机", "售后", "维权", "counterfeit", "risk", "complaint"]
     supply_keywords = ["ip", "labubu", "molly", "skullpanda", "备货", "供应链", "库存", "生产", "inventory", "supply"]
     if any(k in query for k in risk_keywords):
         return "risk"

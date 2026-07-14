@@ -30,3 +30,9 @@ def test_llm_invalid_json_fallback():
     llm = MagicMock()
     llm.chat.return_value = "invalid json"
     assert recommend_page("LABUBU 供应链", llm) == "supply"
+
+
+def test_recommend_markdown_json():
+    llm = MagicMock()
+    llm.chat.return_value = '```json\n{"page": "executive", "reason": "综合市场表现"}\n```'
+    assert recommend_page("泡泡玛特最近市场表现如何？", llm) == "executive"
