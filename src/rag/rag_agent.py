@@ -94,7 +94,12 @@ def rag_query(query: str, top_k: int = 5, use_llm: bool = False,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
         ).strip()
-        confidence = 0.85 if len(results) >= 3 else 0.70
+        if len(results) == 0:
+            confidence = 0.0
+        elif len(results) >= 3:
+            confidence = 0.85
+        else:
+            confidence = 0.70
         confidence_label = (
             "确定(>90%)" if confidence >= 0.90
             else "较确定(70-90%)" if confidence >= 0.70

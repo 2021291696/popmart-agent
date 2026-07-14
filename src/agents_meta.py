@@ -22,7 +22,8 @@ _AGENT_META: dict[str, dict] = {
         "tool_subset": ["web_search", "sentiment_analyze", "trend_compare"],
         "prompt_path": "ip_intelligence.txt",
         "keywords": ["IP", "LABUBU", "MOLLY", "DIMOO", "SKULLPANDA",
-                    "热度", "趋势", "人气", "舆情", "设计师"],
+                    "热度", "趋势", "人气", "舆情", "设计师",
+                    "市场", "表现", "业绩", "股价", "增长", "营收", "市值"],
         "query_template": "查询以下IP的近30天热度趋势、社交媒体讨论内容、情感倾向：{q}",
     },
     "consumer_insights": {
@@ -31,7 +32,8 @@ _AGENT_META: dict[str, dict] = {
         "tool_subset": ["rag_query", "sentiment_analyze"],
         "prompt_path": "consumer_insights.txt",
         "keywords": ["消费者", "用户", "复购", "会员", "画像", "偏好", "投诉",
-                     "配货", "库存", "供应链", "销量", "缺货", "溢价", "二手"],
+                     "配货", "库存", "供应链", "销量", "缺货", "溢价", "二手",
+                     "市场", "表现", "业绩", "增长", "营收", "市值", "财务"],
         "query_template": "基于泡泡玛特知识库，分析：{q}",
     },
     "anti_counterfeit": {

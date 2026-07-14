@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 
+from src.security import redact_secrets, validate_endpoint
+
 if TYPE_CHECKING:
     from src.config import Settings
 
@@ -24,7 +26,10 @@ class APIEmbedder(Embedder):
     """调用 LLM provider 的 embedding endpoint。"""
 
     def __init__(self, settings: "Settings", mode: str = "db"):
-        self.base_url = settings.llm_base_url.rstrip("/")
+        self.base_url = validate_endpoint(
+            settings.llm_base_url,
+            allow_local=settings.allow_local_endpoint,
+        )
         self.api_key = settings.llm_api_key
         self.model = settings.embedding_model or self._default_model()
         self.timeout = settings.llm_timeout_sec
@@ -94,6 +99,10 @@ class LocalEmbedder(Embedder):
             ) from e
 
         if LocalEmbedder._model is None or getattr(LocalEmbedder._model, "_name", None) != self.model_name:
+            # ponytail: 强制本地缓存, 避开 HF HEAD 探测 + AutoProcessor 路径 (bge 是纯文本 encoder)
+            # v5.6 的 AutoProcessor 会找 processor/image_processor/video_processor, bge 没这些就抛 ValueError
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
+            os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
             LocalEmbedder._model = SentenceTransformer(self.model_name, device="cpu")
             LocalEmbedder._model._name = self.model_name
 
@@ -114,7 +123,9 @@ def get_embedder(settings: "Settings", mode: str = "db") -> Embedder:
             embedder.embed(["test"])
             return embedder
         except Exception as e:
-            os.environ["_LAST_EMBEDDER_FALLBACK_REASON"] = str(e)
+            os.environ["_LAST_EMBEDDER_FALLBACK_REASON"] = redact_secrets(
+                str(e), [settings.llm_api_key]
+            )
             pass
 
     model_name = settings.embedding_model or ""

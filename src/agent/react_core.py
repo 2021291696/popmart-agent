@@ -12,7 +12,7 @@ from src.error_handler import LLMTimeoutError, LLMAuthError, LLMError, InvalidCo
 from src.hooks import hooks, HookEvent
 from src.llm_client import LLMClient, get_llm_client
 
-MAX_STEPS = 5
+MAX_STEPS = 3
 
 
 def call_llm(client: LLMClient, system_prompt: str, context: list[dict], settings: Settings) -> str:
