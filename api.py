@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 # 复用现有安全函数做输入清洗（即使不开认证也应清洗恶意输入）
+from src.query_router import _keyword_fallback
 from src.security import normalize_query
 from src.job_manager import JobManager, JobEvent, JobStatus
 from src.orchestrator import Orchestrator
@@ -335,6 +336,27 @@ def _safe_normalize(query: str) -> str:
         return normalize_query(query)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/history")
+def list_history(request: Request):
+    """列出所有已缓存的分析记录，用于历史数据页。"""
+    _check_auth(request)
+    entries = _load_cache()
+    items = []
+    for query, entry in entries.items():
+        result = entry.get("result", {}) if isinstance(entry, dict) else {}
+        sub_tasks = result.get("sub_tasks", []) if isinstance(result, dict) else []
+        items.append({
+            "query": query,
+            "saved_at": entry.get("saved_at", ""),
+            "total_agents": len(sub_tasks),
+            "elapsed_seconds": result.get("elapsed_seconds", 0) if isinstance(result, dict) else 0,
+            "snippet": (result.get("final_answer", "") if isinstance(result, dict) else "")[:120],
+            "recommended_page": _keyword_fallback(query),
+        })
+    items.sort(key=lambda x: x["saved_at"], reverse=True)
+    return {"items": items, "count": len(items)}
 
 
 @app.get("/api/analyze")

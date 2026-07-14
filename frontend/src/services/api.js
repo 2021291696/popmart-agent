@@ -96,6 +96,10 @@ export function subscribeJobEvents(jobId, onEvent) {
   return es
 }
 
+export async function fetchHistory() {
+  return request('/api/history')
+}
+
 // ============================================================
 // 可视化 API：用于三张看板（Executive / Supply / Risk）
 // ============================================================

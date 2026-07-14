@@ -15,6 +15,7 @@ const Supply = lazy(() => import('./pages/Supply'))
 const Risk = lazy(() => import('./pages/Risk'))
 const Chat = lazy(() => import('./pages/Chat'))
 const AnalysisProgress = lazy(() => import('./pages/AnalysisProgress'))
+const History = lazy(() => import('./pages/History'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route index element={<Landing />} />
               <Route path="chat" element={<Chat />} />
               <Route path="progress/:jobId" element={<AnalysisProgress />} />
+              <Route path="history" element={<History />} />
               <Route path="executive" element={<Executive />} />
               <Route path="supply" element={<Supply />} />
               <Route path="risk" element={<Risk />} />

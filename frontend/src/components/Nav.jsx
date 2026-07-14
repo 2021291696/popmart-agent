@@ -9,6 +9,7 @@ export default function Nav() {
   const links = [
     { path: '/', label: '首页' },
     { path: '/chat', label: '对话分析' },
+    { path: '/history', label: '数据' },
     { path: '/executive', label: '老板早会' },
     { path: '/supply', label: '备货分析' },
     { path: '/risk', label: '客诉应对' },
