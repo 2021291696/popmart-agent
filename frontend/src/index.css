@@ -163,6 +163,59 @@ button {
   to { transform: rotate(360deg); }
 }
 
+/* ====== 全局面加载/错误样式（History/Chat/AnalysisProgress 与三个看板页共用） ====== */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  color: var(--color-text-muted);
+  min-height: 60vh;
+}
+
+.loading-pulse {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.error-card {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.error-card h3 {
+  color: #c53030;
+  margin-bottom: var(--spacing-sm);
+}
+
+.error-hint {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin-top: var(--spacing-sm);
+}
+
+/* 进度页「正在处理」行的呼吸效果（与圆形 loading-pulse 区分，仅改变透明度） */
+.pulse {
+  animation: pulse-text 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
 .error-boundary {
   max-width: 600px;
   margin: 80px auto;

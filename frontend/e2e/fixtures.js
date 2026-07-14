@@ -1,9 +1,14 @@
-// e2e fixtures：mock FastAPI 返回的可视化数据
+// e2e fixtures：按后端新契约 mock（jobs REST + SSE、visualize、scenarios、history、本地演示副本）
+// 旧契约（/api/analyze、三层降级 cache.json entries）已废弃，相关 mock 一并重写
 import { test as base, expect } from '@playwright/test'
 
-// 真实后端会用 .demo_cache.json，这里 mock API 层让前端测试独立运行
+export const MOCK_JOB_ID = 'job-mock-1'
+export const DEMO_QUERY = '泡泡玛特最近的市场表现如何？'
+export const SUPPLY_QUERY = 'LABUBU 为什么能成为泡泡玛特的核心IP？'
+export const RISK_QUERY = '泡泡玛特消费者投诉和二手假货风险有多高？'
+
 export const MOCK_EXECUTIVE = {
-  query: '泡泡玛特最近的市场表现如何？',
+  query: DEMO_QUERY,
   title: '泡泡玛特综合分析',
   total_agents: 2,
   total_steps: 4,
@@ -30,7 +35,7 @@ export const MOCK_EXECUTIVE = {
 }
 
 export const MOCK_SUPPLY = {
-  query: 'LABUBU 为什么能成为泡泡玛特的核心IP？',
+  query: SUPPLY_QUERY,
   title: 'LABUBU IP 深度分析',
   generated_at: '2026-07-13 14:30',
   final_answer: 'LABUBU 成功源于稀缺性营销 + 跨界联名 + 设计师龙家升',
@@ -55,7 +60,7 @@ export const MOCK_SUPPLY = {
 }
 
 export const MOCK_RISK_WITH_CONFLICT = {
-  query: '泡泡玛特消费者投诉和二手假货风险有多高？',
+  query: RISK_QUERY,
   title: '消费者风险分析',
   generated_at: '2026-07-13 14:30',
   final_answer: '整体投诉下降，但假货风险上升。需区分产品质量投诉与渠道假货投诉。',
@@ -80,32 +85,114 @@ export const MOCK_RISK_NO_CONFLICT = {
   ...MOCK_RISK_WITH_CONFLICT,
   has_conflict: false,
   conflicts: [],
-  final_answer: '消费者投诉和假货风险均处于低位，无需特别干预。',
+  total_rounds: 1,
+  final_answer: '无冲突：消费者投诉和假货风险均处于低位，无需特别干预。',
 }
 
-// 扩展 test fixture：拦截 API 调用并返回 mock 数据
+export const MOCK_SCENARIOS = {
+  scenarios: [
+    { id: 'market', label: '综合市场表现', query: DEMO_QUERY, page: 'executive', cached: true },
+    { id: 'labubu', label: 'LABUBU IP 解析', query: SUPPLY_QUERY, page: 'supply', cached: true },
+    { id: 'risk', label: '消费者风险', query: RISK_QUERY, page: 'risk', cached: false },
+  ],
+  count: 3,
+}
+
+export const MOCK_HISTORY = {
+  items: [
+    {
+      query: DEMO_QUERY,
+      saved_at: '2026-07-14 12:00',
+      total_agents: 2,
+      elapsed_seconds: 45.2,
+      snippet: '核心结论：增长强劲',
+      recommended_page: 'executive',
+    },
+    {
+      query: SUPPLY_QUERY,
+      saved_at: '2026-07-14 11:00',
+      total_agents: 1,
+      elapsed_seconds: 30.0,
+      snippet: 'LABUBU 热度上升',
+      recommended_page: 'supply',
+    },
+  ],
+  count: 2,
+}
+
+// Job REST 响应工厂（新契约：status 终态为 completed/failed）
+export function mockJob(overrides = {}) {
+  return {
+    id: MOCK_JOB_ID,
+    query: DEMO_QUERY,
+    status: 'completed',
+    error: null,
+    recommended_page: 'executive',
+    created_at: '2026-07-14T10:00:00',
+    updated_at: '2026-07-14T10:01:00',
+    ...overrides,
+  }
+}
+
+// 把 SSE 帧数组序列化为 text/event-stream body
+export function sseBody(frames) {
+  return frames.map((f) => `data: ${JSON.stringify(f)}\n\n`).join('')
+}
+
+export const DEFAULT_SSE_FRAMES = [
+  { stage: 'decompose', message: '任务分解为 2 个子任务', payload: {}, timestamp: '2026-07-14T10:00:01' },
+  { stage: 'agent_complete', message: 'ip_intelligence 完成', payload: {}, timestamp: '2026-07-14T10:00:30' },
+  { stage: 'complete', message: '分析完成', payload: { recommended_page: 'executive' }, timestamp: '2026-07-14T10:01:00' },
+]
+
+// 通用路由装配。spec 内对同名端点再次 page.route 可覆盖默认值（playwright 后注册优先）。
+// 注意：playwright fulfill 的 SSE 是一次性给完 body 后断流，前端收到 complete 帧即关闭连接；
+// 若断流先于结束帧，useJob 会自动降级为 REST 轮询——两条路径都被覆盖到。
+export async function mockApiRoutes(page, options = {}) {
+  const { job = mockJob(), events = DEFAULT_SSE_FRAMES } = options
+
+  await page.route(/\/api\/visualize\/executive/, (route) =>
+    route.fulfill({ json: MOCK_EXECUTIVE, status: 200 })
+  )
+  await page.route(/\/api\/visualize\/supply/, (route) =>
+    route.fulfill({ json: MOCK_SUPPLY, status: 200 })
+  )
+  await page.route(/\/api\/visualize\/risk/, (route) =>
+    route.fulfill({ json: MOCK_RISK_WITH_CONFLICT, status: 200 })
+  )
+  await page.route(/\/api\/scenarios/, (route) =>
+    route.fulfill({ json: MOCK_SCENARIOS, status: 200 })
+  )
+  await page.route(/\/api\/history/, (route) =>
+    route.fulfill({ json: MOCK_HISTORY, status: 200 })
+  )
+  // 本地演示副本默认 404：降级未命中 → 看板显示错误卡（命中场景由 spec 显式覆盖）
+  await page.route(/\/data\/cache\.json/, (route) =>
+    route.fulfill({ status: 404, body: 'not mocked' })
+  )
+  await page.route(/\/api\/jobs$/, (route) => {
+    if (route.request().method() === 'POST') {
+      route.fulfill({ json: { job_id: MOCK_JOB_ID, status: 'pending', query: DEMO_QUERY }, status: 200 })
+    } else {
+      route.fallback()
+    }
+  })
+  await page.route(/\/api\/jobs\/[^/]+$/, (route) =>
+    route.fulfill({ json: job, status: 200 })
+  )
+  await page.route(/\/api\/jobs\/[^/]+\/events$/, (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+      body: sseBody(events),
+    })
+  )
+}
+
+// 扩展 test fixture：默认拦截全部后端 API，让 e2e 不依赖真实后端（后端正在并行改造）
 export const test = base.extend({
   page: async ({ page }, use) => {
-    // 拦截所有 visualize API 调用（绝对 URL + glob）
-    await page.route(/.*\/api\/visualize\/executive/, (route) =>
-      route.fulfill({ json: MOCK_EXECUTIVE, status: 200 })
-    )
-    await page.route(/.*\/api\/visualize\/supply/, (route) =>
-      route.fulfill({ json: MOCK_SUPPLY, status: 200 })
-    )
-    await page.route(/.*\/api\/visualize\/risk/, (route) =>
-      route.fulfill({ json: MOCK_RISK_WITH_CONFLICT, status: 200 })
-    )
-    // 三层降级中可能调用的其他 API
-    await page.route(/.*\/api\/scenarios/, (route) =>
-      route.fulfill({ json: { scenarios: [], count: 0 }, status: 200 })
-    )
-    await page.route(/.*\/api\/analyze.*/, (route) =>
-      route.fulfill({ json: { error: 'mocked' }, status: 404 })
-    )
-    await page.route(/.*\/data\/cache\.json/, (route) =>
-      route.fulfill({ json: { entries: {} }, status: 200 })
-    )
+    await mockApiRoutes(page)
     await use(page)
   },
 })

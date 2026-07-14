@@ -10,6 +10,16 @@ const PAGE_LABELS = {
   risk: '客诉应对',
 }
 
+// 后端 snippet 取自 markdown 报告前 120 字，列表渲染前先剥离 markdown 标记
+const SNIPPET_MAX_LEN = 120
+
+function stripMarkdown(text) {
+  return (text || '')
+    .replace(/[#>*`_~[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export default function History() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -60,8 +70,10 @@ export default function History() {
           <div className="history-list">
             {items.map((item, idx) => {
               const page = item.recommended_page || 'executive'
+              const snippet = stripMarkdown(item.snippet)
+              const truncated = (item.snippet || '').length >= SNIPPET_MAX_LEN
               return (
-                <div key={idx} className="history-card fade-in" style={{ animationDelay: `${idx * 60}ms` }}>
+                <div key={item.query || idx} className="history-card fade-in" style={{ animationDelay: `${idx * 60}ms` }}>
                   <div className="history-main">
                     <div className="history-query">{item.query}</div>
                     <div className="history-meta">
@@ -69,7 +81,7 @@ export default function History() {
                       <span>{item.total_agents || 0} 个 Agent</span>
                       <span>{item.elapsed_seconds || 0}s</span>
                     </div>
-                    {item.snippet && <p className="history-snippet">{item.snippet}...</p>}
+                    {snippet && <p className="history-snippet">{snippet}{truncated ? '…' : ''}</p>}
                   </div>
                   <div className="history-actions">
                     <Link to={`/${page}?query=${encodeURIComponent(item.query)}`} className="btn-secondary">

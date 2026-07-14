@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import './Supply.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
-import { fetchSupplyViz } from '../services/api'
+import DemoBanner from '../components/DemoBanner'
+import { fetchVisualizeWithFallback } from '../services/api'
 
 function ToolBar({ name, count, max }) {
   const pct = max > 0 ? (count / max) * 100 : 0
@@ -26,12 +27,17 @@ export default function Supply() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    fetchSupplyViz(query)
-      .then((viz) => {
+    setError(null)
+    setData(null)
+    setIsDemo(false)
+    fetchVisualizeWithFallback('supply', query)
+      .then(({ source, data: viz }) => {
         setData(viz)
+        setIsDemo(source === 'local')
         setLoading(false)
       })
       .catch((err) => {
@@ -58,7 +64,7 @@ export default function Supply() {
             <h3>⚠️ 数据未就绪</h3>
             <p>{error}</p>
             <p className="error-hint">
-              请先在<a href="/chat">对话分析</a>提交一个问题，系统会自动生成看板数据。
+              请先在<Link to="/chat">对话分析</Link>提交一个问题，系统会自动生成看板数据。
             </p>
           </div>
         </div>
@@ -66,15 +72,18 @@ export default function Supply() {
     )
   }
 
+  if (!data) return null
+
   const agent = data?.agent
   const tools = data.tool_distribution || []
   const maxCalls = Math.max(...tools.map((t) => t.calls), 1)
 
   return (
     <div className="supply-page">
+      {isDemo && <DemoBanner />}
       <PageHeader
         title={data.title}
-        description={agent ? `${agent.name} · ${agent.total_steps} 步 ReAct 推理 · ${agent.llm_calls} 次 LLM 调用` : 'ReAct 推理过程'}
+        description={agent ? `${agent.name} · ${agent.total_steps ?? 0} 步 ReAct 推理 · ${agent.llm_calls ?? 0} 次 LLM 调用` : 'ReAct 推理过程'}
       />
 
       <div className="container">
@@ -83,8 +92,8 @@ export default function Supply() {
           <section className="agent-meta-row">
             {[
               { label: 'Agent', value: agent.name },
-              { label: '推理步数', value: agent.total_steps },
-              { label: 'LLM 调用', value: agent.llm_calls },
+              { label: '推理步数', value: agent.total_steps ?? 0 },
+              { label: 'LLM 调用', value: agent.llm_calls ?? 0 },
               { label: '数据调用', value: tools.reduce((a, b) => a + b.calls, 0) },
             ].map((m, idx) => (
               <div key={idx} className="agent-meta-card fade-in" style={{ animationDelay: `${idx * 80}ms` }}>

@@ -219,6 +219,19 @@
   color: var(--color-text);
 }
 
+.scenario-cached-badge {
+  display: inline-block;
+  margin-left: 10px;
+  vertical-align: middle;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2f855a;
+  background: rgba(47, 133, 90, 0.1);
+  border: 1px solid rgba(47, 133, 90, 0.25);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
 .scenario-card p {
   font-size: 15px;
   color: var(--color-text-muted);

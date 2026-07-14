@@ -1,15 +1,16 @@
 import React, { useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import './AnalysisProgress.css'
 import PageHeader from '../components/PageHeader'
-import { useJob } from '../hooks/useJob'
+import { useJob, isCompleteStatus, isTerminalStatus } from '../hooks/useJob'
 
+// conflict_resolve 归入「冲突检测」一格；complete/completed 双轨统一
 const STAGES = [
-  { key: 'decompose', label: '任务分解' },
-  { key: 'agent_complete', label: 'Agent 执行' },
-  { key: 'conflict_detect', label: '冲突检测' },
-  { key: 'synthesize', label: '综合报告' },
-  { key: 'complete', label: '完成' },
+  { key: 'decompose', label: '任务分解', match: ['decompose'] },
+  { key: 'agent_complete', label: 'Agent 执行', match: ['agent_complete'] },
+  { key: 'conflict', label: '冲突检测', match: ['conflict_detect', 'conflict_resolve'] },
+  { key: 'synthesize', label: '综合报告', match: ['synthesize'] },
+  { key: 'complete', label: '完成', match: ['complete', 'completed'] },
 ]
 
 export default function AnalysisProgress() {
@@ -17,16 +18,25 @@ export default function AnalysisProgress() {
   const navigate = useNavigate()
   const { status, events, error, job } = useJob(jobId)
 
+  const completed = isCompleteStatus(status)
+  const failed = status === 'failed'
+
   useEffect(() => {
-    if (status === 'complete' && job?.recommended_page && job?.query) {
+    if (completed && job?.recommended_page && job?.query) {
       const page = job.recommended_page
       navigate(`/${page}?query=${encodeURIComponent(job.query)}`)
     }
-  }, [status, job, navigate])
+  }, [completed, job, navigate])
 
   const reachedStages = new Set(events.map((e) => e.stage))
-  const currentIndex = STAGES.findIndex((s) => !reachedStages.has(s.key))
+  const isReached = (stage) => stage.match.some((k) => reachedStages.has(k))
+  const currentIndex = STAGES.findIndex((s) => !isReached(s))
   const activeIndex = currentIndex === -1 ? STAGES.length - 1 : currentIndex
+
+  // 失败信息来源优先级：REST job.error → SSE failed 帧 payload → failed 帧 message
+  const failedEvent = events.find((e) => e.stage === 'failed')
+  const failMessage =
+    job?.error || failedEvent?.payload?.error || failedEvent?.message || '分析过程中出现错误，请重试'
 
   return (
     <div className="progress-page">
@@ -36,9 +46,11 @@ export default function AnalysisProgress() {
           {STAGES.map((stage, idx) => (
             <div
               key={stage.key}
-              className={`stage-item ${idx <= activeIndex ? 'active' : ''} ${reachedStages.has(stage.key) ? 'done' : ''}`}
+              className={`stage-item ${idx <= activeIndex ? 'active' : ''} ${isReached(stage) ? 'done' : ''} ${
+                failed && idx === activeIndex ? 'failed' : ''
+              }`}
             >
-              <div className="stage-dot">{idx + 1}</div>
+              <div className="stage-dot">{failed && idx === activeIndex ? '✕' : idx + 1}</div>
               <div className="stage-label">{stage.label}</div>
             </div>
           ))}
@@ -46,12 +58,12 @@ export default function AnalysisProgress() {
 
         <div className="event-log">
           {events.map((ev, idx) => (
-            <div key={idx} className="event-row">
+            <div key={idx} className={`event-row ${ev.stage === 'failed' ? 'event-row-failed' : ''}`}>
               <span className="event-stage">{ev.stage}</span>
               <span className="event-message">{ev.message}</span>
             </div>
           ))}
-          {status !== 'complete' && status !== 'failed' && (
+          {!isTerminalStatus(status) && !error && (
             <div className="event-row pulse">
               <span className="event-stage">{status}</span>
               <span className="event-message">正在处理...</span>
@@ -59,7 +71,25 @@ export default function AnalysisProgress() {
           )}
         </div>
 
-        {error && <div className="error-card">分析失败：{error}</div>}
+        {failed && (
+          <div className="error-card">
+            <h3>⚠️ 分析失败</h3>
+            <p>{failMessage}</p>
+            <p className="error-hint">
+              <Link to="/chat">返回对话页重试</Link>
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="error-card">
+            <h3>{error.kind === 'not_found' ? '⚠️ 任务不存在或已过期' : '⚠️ 连接异常'}</h3>
+            <p>{error.message}</p>
+            <p className="error-hint">
+              <Link to="/chat">返回对话页重试</Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

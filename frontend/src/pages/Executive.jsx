@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import './Executive.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
-import { fetchExecutiveViz } from '../services/api'
+import DemoBanner from '../components/DemoBanner'
+import { fetchVisualizeWithFallback } from '../services/api'
 
 export default function Executive() {
   const [searchParams] = useSearchParams()
@@ -11,12 +12,17 @@ export default function Executive() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    fetchExecutiveViz(query)
-      .then((viz) => {
+    setError(null)
+    setData(null)
+    setIsDemo(false)
+    fetchVisualizeWithFallback('executive', query)
+      .then(({ source, data: viz }) => {
         setData(viz)
+        setIsDemo(source === 'local')
         setLoading(false)
       })
       .catch((err) => {
@@ -43,7 +49,7 @@ export default function Executive() {
             <h3>⚠️ 数据未就绪</h3>
             <p>{error}</p>
             <p className="error-hint">
-              请先在<a href="/chat">对话分析</a>提交一个问题，系统会自动生成看板数据。
+              请先在<Link to="/chat">对话分析</Link>提交一个问题，系统会自动生成看板数据。
             </p>
           </div>
         </div>
@@ -55,19 +61,20 @@ export default function Executive() {
 
   return (
     <div className="executive-page">
+      {isDemo && <DemoBanner />}
       <PageHeader
         title={data.title}
-        description={`多 Agent 协作全景 · ${data.total_agents} 个专业 Agent · ${data.total_llm_calls} 次 LLM 调用 · ${data.elapsed_seconds}s`}
+        description={`多 Agent 协作全景 · ${data.total_agents ?? 0} 个专业 Agent · ${data.total_llm_calls ?? 0} 次 LLM 调用 · ${data.elapsed_seconds ?? 0}s`}
       />
 
       <div className="container">
         {/* 关键指标 */}
         <section className="metrics-row">
           {[
-            { label: '参与 Agent', value: data.total_agents, unit: '个' },
-            { label: '推理步数', value: data.total_steps, unit: '步' },
-            { label: 'LLM 调用', value: data.total_llm_calls, unit: '次' },
-            { label: '总耗时', value: data.elapsed_seconds, unit: 's' },
+            { label: '参与 Agent', value: data.total_agents ?? 0, unit: '个' },
+            { label: '推理步数', value: data.total_steps ?? 0, unit: '步' },
+            { label: 'LLM 调用', value: data.total_llm_calls ?? 0, unit: '次' },
+            { label: '总耗时', value: data.elapsed_seconds ?? 0, unit: 's' },
           ].map((m, idx) => (
             <div key={idx} className="metric-card fade-in" style={{ animationDelay: `${idx * 80}ms` }}>
               <div className="metric-label">{m.label}</div>
@@ -83,15 +90,15 @@ export default function Executive() {
         <section className="agent-section">
           <h2 className="section-title">🤖 Agent 贡献</h2>
           <div className="agent-grid">
-            {data.agents.map((agent, idx) => (
+            {(data.agents ?? []).map((agent, idx) => (
               <div key={agent.name} className="agent-card fade-in" style={{ animationDelay: `${(idx + 4) * 80}ms` }}>
                 <div className="agent-card-header">
                   <span className="agent-name">{agent.name}</span>
-                  <span className="agent-badge">{agent.steps} 步 · {agent.llm_calls} 调用</span>
+                  <span className="agent-badge">{agent.steps ?? 0} 步 · {agent.llm_calls ?? 0} 调用</span>
                 </div>
-                <p className="agent-conclusion">{agent.conclusion}</p>
+                <p className="agent-conclusion">{agent.conclusion ?? ''}</p>
                 <div className="agent-footer">
-                  <span className="agent-sources">📊 {agent.sources_count} 次数据调用</span>
+                  <span className="agent-sources">📊 {agent.sources_count ?? 0} 次数据调用</span>
                 </div>
               </div>
             ))}
@@ -102,7 +109,7 @@ export default function Executive() {
         <section className="report-section">
           <h2 className="section-title">📋 综合报告</h2>
           <div className="report-card fade-in">
-            <MarkdownView content={data.final_answer} />
+            <MarkdownView content={data.final_answer ?? ''} />
           </div>
         </section>
 

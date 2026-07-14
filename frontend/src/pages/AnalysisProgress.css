@@ -41,6 +41,21 @@
   color: white;
 }
 
+/* 失败时当前格标红冻结 */
+.stage-item.failed .stage-dot {
+  background: #c53030;
+  color: white;
+}
+
+.stage-item.failed .stage-label {
+  color: #c53030;
+}
+
+.event-row-failed .event-stage,
+.event-row-failed .event-message {
+  color: #c53030;
+}
+
 .event-log {
   background: #f7fafc;
   border-radius: 12px;
