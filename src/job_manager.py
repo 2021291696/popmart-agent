@@ -108,3 +108,6 @@ class JobManager:
             self._listeners[job_id] = [l for l in self._listeners[job_id] if l is not listener]
             if not self._listeners[job_id]:
                 del self._listeners[job_id]
+
+    def list_jobs(self) -> list[Job]:
+        return list(self._jobs.values())

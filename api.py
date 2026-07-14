@@ -64,11 +64,12 @@ async def _run_analysis_job(job_id: str, query: str) -> None:
         job_manager.complete_job(job_id, result_dict, recommended_page)
         _save_result_to_cache(query, result_dict)
     except Exception as exc:
+        _progress("failed", f"分析失败: {exc}", {"error": str(exc)})
         job_manager.fail_job(job_id, str(exc))
 
 
 def _save_result_to_cache(query: str, result: dict) -> None:
-    """把分析结果写回 .demo_cache.json，保持 {schema_version, entries} 结构。"""
+    """把分析结果原子写回 .demo_cache.json，保持 {schema_version, entries} 结构。"""
     data = {}
     if CACHE_FILE.exists():
         try:
@@ -83,8 +84,10 @@ def _save_result_to_cache(query: str, result: dict) -> None:
     data["schema_version"] = data.get("schema_version", 1)
     data["entries"] = entries
     CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(CACHE_FILE, "w", encoding="utf-8") as f:
+    tmp_file = CACHE_FILE.with_suffix(".tmp")
+    with open(tmp_file, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    tmp_file.replace(CACHE_FILE)
 
 
 ROOT = Path(__file__).parent
@@ -396,6 +399,27 @@ async def create_job(req: AnalyzeRequest, request: Request):
     job = job_manager.create_job(query)
     asyncio.create_task(_run_analysis_job(job.id, query))
     return {"job_id": job.id, "status": job.status.value, "query": query}
+
+
+@app.get("/api/jobs")
+async def list_jobs(request: Request):
+    """列出所有分析任务。"""
+    _check_auth(request)
+    jobs = job_manager.list_jobs()
+    return {
+        "jobs": [
+            {
+                "id": job.id,
+                "query": job.query,
+                "status": job.status.value,
+                "recommended_page": job.recommended_page,
+                "created_at": job.created_at,
+                "updated_at": job.updated_at,
+            }
+            for job in jobs
+        ],
+        "count": len(jobs),
+    }
 
 
 @app.get("/api/jobs/{job_id}")
