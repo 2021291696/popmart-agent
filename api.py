@@ -351,14 +351,19 @@ def get_analysis(query: str, request: Request):
 
 @app.post("/api/analyze")
 def run_analysis(req: AnalyzeRequest, request: Request):
-    """POST 提交新查询。当前阶段复用缓存；未来可在此调用 orchestrator.execute()。"""
+    """POST 提交新查询，同步执行分析。适用于简单调用方。"""
     _check_auth(request)
     query = _safe_normalize(req.query)
-    cache = _load_cache()
-    entry = cache.get(query)
-    if not entry:
-        raise HTTPException(status_code=404, detail="analysis not found in cache")
-    return entry
+    settings = Settings()
+    registry = _build_agent_registry(settings)
+    orchestrator = Orchestrator(registry, settings=settings)
+    try:
+        result = orchestrator.execute(query)
+        result_dict = _orchestration_result_to_dict(result)
+        _save_result_to_cache(query, result_dict)
+        return {"query": query, "result": result_dict}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/api/jobs")
