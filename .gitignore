@@ -23,3 +23,23 @@ strix_runs/
 
 # Streamlit secrets（本地开发用，不入库）
 .streamlit/secrets.toml
+
+# Demo 跨 session 缓存（面试前预热生成，不入库）
+.demo_cache.pkl
+.demo_cache.json
+
+# IDE / 工具配置
+.idea/
+.claudian/
+.obsidian/
+.codebase-memory/
+.tmp/
+
+# 前端依赖与测试产物
+node_modules/
+frontend/test-results/
+frontend/screenshots/
+frontend/demo-screenshots/
+
+# 运行日志
+streamlit*.log
