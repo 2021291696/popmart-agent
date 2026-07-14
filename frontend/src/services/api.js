@@ -63,17 +63,56 @@ export async function fetchAnalysisWithFallback(query) {
 }
 
 // ============================================================
+// Job API：创建任务、查询状态、SSE 订阅进度
+// ============================================================
+
+export async function startJob(query) {
+  return request('/api/jobs', {
+    method: 'POST',
+    body: JSON.stringify({ query }),
+  })
+}
+
+export async function getJob(jobId) {
+  return request(`/api/jobs/${jobId}`)
+}
+
+export function subscribeJobEvents(jobId, onEvent) {
+  const es = new EventSource(`${API_BASE}/api/jobs/${jobId}/events`)
+  es.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+      onEvent(data)
+      if (data.stage === 'complete' || data.stage === 'failed') {
+        es.close()
+      }
+    } catch (err) {
+      console.warn('[sse] parse error', err)
+    }
+  }
+  es.onerror = (err) => {
+    console.warn('[sse] connection error', err)
+  }
+  return es
+}
+
+// ============================================================
 // 可视化 API：用于三张看板（Executive / Supply / Risk）
 // ============================================================
 
-export async function fetchExecutiveViz() {
-  return request('/api/visualize/executive')
+export async function fetchVisualize(page, query) {
+  const q = query ? `?query=${encodeURIComponent(query)}` : ''
+  return request(`/api/visualize/${page}${q}`)
 }
 
-export async function fetchSupplyViz() {
-  return request('/api/visualize/supply')
+export async function fetchExecutiveViz(query) {
+  return fetchVisualize('executive', query)
 }
 
-export async function fetchRiskViz() {
-  return request('/api/visualize/risk')
+export async function fetchSupplyViz(query) {
+  return fetchVisualize('supply', query)
+}
+
+export async function fetchRiskViz(query) {
+  return fetchVisualize('risk', query)
 }
