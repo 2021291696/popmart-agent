@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "泡泡玛特 Agent 分析系统",
+    "subtitle": "3-Agent Orchestrator 调度 + RAG 知识库 + 数据管线",
+    "output": "popmart-architecture.html"
+  },
+  "components": [
+    { "id": "users", "type": "external", "label": "用户 / 决策者", "sublabel": "Streamlit UI", "pos": [40, 80], "size": [120, 60] },
+    { "id": "streamlit_ui", "type": "frontend", "label": "Streamlit UI", "sublabel": "app.py", "pos": [240, 80], "size": [130, 60] },
+    { "id": "orchestrator", "type": "backend", "label": "Orchestrator", "sublabel": "任务拆解 · 分发 · 仲裁 · 汇总", "pos": [480, 80], "size": [150, 70] },
+    { "id": "llm_client", "type": "backend", "label": "LLM Client", "sublabel": "OpenAI / Anthropic / MiniMax", "pos": [760, 80], "size": [140, 60] },
+    { "id": "llm_provider", "type": "external", "label": "LLM Provider", "sublabel": "DeepSeek / MiniMax", "pos": [980, 80], "size": [130, 60] },
+    { "id": "ip_agent", "type": "backend", "label": "IP 情报 Agent", "sublabel": "舆情 · 竞品 · 设计师", "pos": [80, 220], "size": [140, 60] },
+    { "id": "consumer_agent", "type": "backend", "label": "消费者洞察 Agent", "sublabel": "RAG 问答 · 用户画像", "pos": [320, 220], "size": [160, 60] },
+    { "id": "anti_agent", "type": "backend", "label": "防伪溯源 Agent", "sublabel": "假货检测 · 举报生成", "pos": [580, 220], "size": [150, 60] },
+    { "id": "quality_loop", "type": "security", "label": "Quality + Loop", "sublabel": "评分 · 自愈重跑", "pos": [820, 220], "size": [140, 60] },
+    { "id": "shared_context", "type": "database", "label": "共享决策面板", "sublabel": "shared_context.py", "pos": [340, 360], "size": [160, 60] },
+    { "id": "pipeline", "type": "backend", "label": "数据管线", "sublabel": "fetch · chunk · refresh", "pos": [80, 520], "size": [140, 60] },
+    { "id": "rag", "type": "backend", "label": "RAG 引擎", "sublabel": "retriever · embedder", "pos": [320, 520], "size": [140, 60] },
+    { "id": "chromadb", "type": "database", "label": "ChromaDB", "sublabel": "向量存储 · cosine", "pos": [560, 520], "size": [130, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "泡泡玛特 Agent 分析系统", "wraps": ["streamlit_ui", "orchestrator", "llm_client", "ip_agent", "consumer_agent", "anti_agent", "quality_loop", "shared_context", "pipeline", "rag", "chromadb"] },
+    { "kind": "security-group", "label": "数据底座", "wraps": ["pipeline", "rag", "chromadb"] }
+  ],
+  "connections": [
+    { "from": "users", "to": "streamlit_ui", "label": "提问 / 下达任务", "variant": "emphasis" },
+    { "from": "streamlit_ui", "to": "orchestrator", "label": "自然语言问题" },
+    { "from": "orchestrator", "to": "ip_agent", "label": "子任务 A" },
+    { "from": "orchestrator", "to": "consumer_agent", "label": "子任务 B", "variant": "emphasis", "labelDy": 59 },
+    { "from": "orchestrator", "to": "anti_agent", "label": "子任务 C" },
+    { "from": "ip_agent", "to": "shared_context", "fromSide": "bottom", "toSide": "top" },
+    { "from": "consumer_agent", "to": "shared_context", "fromSide": "bottom", "toSide": "top" },
+    { "from": "anti_agent", "to": "shared_context", "fromSide": "bottom", "toSide": "top" },
+    { "from": "shared_context", "to": "orchestrator", "label": "结果 · 冲突", "fromSide": "top", "toSide": "bottom", "variant": "emphasis", "labelDy": 49 },
+    { "from": "orchestrator", "to": "llm_client", "label": "LLM 调用", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "from": "llm_client", "to": "llm_provider", "label": "API", "variant": "emphasis" },
+    { "from": "consumer_agent", "to": "rag", "label": "语义检索", "fromSide": "bottom", "toSide": "top", "labelDy": 44 },
+    { "from": "rag", "to": "chromadb", "label": "向量查询" },
+    { "from": "pipeline", "to": "chromadb", "label": "chunks", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelDy": 58 },
+    { "from": "orchestrator", "to": "quality_loop", "label": "质量检查", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Multi-Agent 协作", "items": ["Orchestrator 作为 Leader 拆解任务", "3 个专业 Agent 并行执行", "共享上下文统一结果与冲突"] },
+    { "dot": "cyan", "title": "数据 + RAG", "items": ["pipeline/ 4 阶段抓取 → chunk → 嵌入", "ChromaDB 本地 cosine 检索", "消费者洞察 Agent 强制引用来源"] },
+    { "dot": "rose", "title": "面试亮点", "items": ["纯 Python 手写 ReAct ~200 行", "QualityGateHook + ImprovementLoop 自愈", "LLM Client 多协议统一封装"] }
+  ]
+}
