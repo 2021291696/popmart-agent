@@ -49,7 +49,7 @@ def test_execute_emits_conflict_resolve():
 
     orch._decompose = lambda q: [MagicMock(task_id="t1", agent_name="agent_a", query=q, status=MagicMock(value="done"))]
     orch._synthesize = lambda q, ctx: ("final", "llm")
-    orch._resolve_conflicts = lambda ctx, round_num: None
+    orch._resolve_conflicts = lambda ctx, round_num, sub_tasks=None: None
 
     class FakeSharedContextWithConflict:
         def __init__(self, **kwargs):

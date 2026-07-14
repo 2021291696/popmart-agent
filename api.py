@@ -4,95 +4,46 @@
 1. 从 .demo_cache.json 读取已缓存的成功分析结果；
 2. 在需要时调用 orchestrator.execute() 执行新查询。
 
+Job/SSE 相关端点已抽到 src/api_jobs.py（APIRouter），本文件通过 include_router 挂载。
 认证按用户要求先不启用 - 后续接入时设置 STREAMLIT_PASSWORD 即可启用。
 """
 from __future__ import annotations
 
-import asyncio
 import json
+import logging
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 
 # 复用现有安全函数做输入清洗（即使不开认证也应清洗恶意输入）
 from src.query_router import _keyword_fallback
-from src.security import normalize_query
-from src.job_manager import JobManager, JobEvent, JobStatus
+from src.api_jobs import (
+    AnalyzeRequest,
+    _build_agent_registry,
+    _orchestration_result_to_dict,
+    _run_analysis_job,  # noqa: F401  （测试补丁点）
+    _safe_normalize,
+    _save_result_to_cache as _jobs_save_result_to_cache,
+    check_auth,
+    job_manager,  # noqa: F401  （兼容旧引用）
+    router as jobs_router,
+)
+
+_check_auth = check_auth  # 兼容旧引用
+from src.config import load_settings
 from src.orchestrator import Orchestrator
-from src.query_router import recommend_page
-from src.config import Settings
 
-job_manager = JobManager()
-
-
-def _build_agent_registry(settings: Settings):
-    """延迟构建 Agent registry，避免 api.py 启动时做重初始化。"""
-    from src.agent_factory import build_agents
-    return build_agents(settings)
-
-
-def _orchestration_result_to_dict(result) -> dict:
-    """把 OrchestrationResult（含 SubTask 对象）序列化为纯 dict。"""
-    d = result.__dict__.copy()
-    d["sub_tasks"] = [
-        st.__dict__ if hasattr(st, "__dict__") else st
-        for st in d.get("sub_tasks", [])
-    ]
-    return d
-
-
-async def _run_analysis_job(job_id: str, query: str) -> None:
-    """在后台线程运行 orchestrator.execute，并通过回调推送事件。"""
-    settings = Settings()
-    registry = _build_agent_registry(settings)
-    orchestrator = Orchestrator(registry, settings=settings)
-
-    def _progress(stage: str, message: str, payload: dict):
-        job_manager.update_job(job_id, event=JobEvent(stage=stage, message=message, payload=payload))
-
-    job_manager.update_job(job_id, JobStatus.DECOMPOSING)
-    try:
-        result = await asyncio.to_thread(orchestrator.execute, query, progress_callback=_progress)
-        recommended_page = recommend_page(query)
-        result_dict = _orchestration_result_to_dict(result)
-        job_manager.complete_job(job_id, result_dict, recommended_page)
-        _save_result_to_cache(query, result_dict)
-    except Exception as exc:
-        _progress("failed", f"分析失败: {exc}", {"error": str(exc)})
-        job_manager.fail_job(job_id, str(exc))
-
-
-def _save_result_to_cache(query: str, result: dict) -> None:
-    """把分析结果原子写回 .demo_cache.json，保持 {schema_version, entries} 结构。"""
-    data = {}
-    if CACHE_FILE.exists():
-        try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            pass
-    if not isinstance(data, dict):
-        data = {}
-    entries = data.get("entries") if isinstance(data.get("entries"), dict) else {}
-    entries[query] = {"result": result, "saved_at": datetime.utcnow().isoformat()}
-    data["schema_version"] = data.get("schema_version", 1)
-    data["entries"] = entries
-    CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp_file = CACHE_FILE.with_suffix(".tmp")
-    with open(tmp_file, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    tmp_file.replace(CACHE_FILE)
-
+log = logging.getLogger("api")
 
 ROOT = Path(__file__).parent
 CACHE_FILE = ROOT / ".demo_cache.json"
 API_KEY = os.getenv("STREAMLIT_PASSWORD", "")  # 留空即关闭认证
+# 默认只回通用错误文案；排障时设 API_DEBUG=1 才把内部异常细节带给客户端
+DEBUG_API = os.getenv("API_DEBUG", "").lower() in {"1", "true", "yes"}
 
 app = FastAPI(
     title="泡泡玛特 Agent API",
@@ -100,18 +51,27 @@ app = FastAPI(
     description="FDE 面试作品：把 Multi-Agent 分析能力暴露为 HTTP 接口。",
 )
 
-# CORS：前端开发服务器在 3000
+# CORS：前端开发服务器在 3000，vite preview 在 4173
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# 挂载 Job/SSE 端点（/api/jobs*）
+app.include_router(jobs_router)
 
-class AnalyzeRequest(BaseModel):
-    query: str
+
+def _save_result_to_cache(query: str, result: dict) -> bool:
+    """写缓存兼容入口：转发到 src.api_jobs 的统一实现（走 api 的 CACHE_FILE）。"""
+    return _jobs_save_result_to_cache(query, result, path=CACHE_FILE)
 
 
 def _load_cache() -> dict:
@@ -133,12 +93,26 @@ def _load_cache() -> dict:
         return {}
 
 
+def _entry_has_subtasks(entry: dict) -> bool:
+    """条目是否含有效子任务（用于过滤 0-agent 的垃圾条目）。"""
+    result = entry.get("result") if isinstance(entry, dict) else None
+    if not isinstance(result, dict):
+        return False
+    return bool(result.get("sub_tasks"))
+
+
 def _get_latest_query(entries: dict) -> Optional[str]:
-    """返回 saved_at 最新的 query；没有 saved_at 时返回第一个。"""
-    dated = [(q, e.get("saved_at", "")) for q, e in entries.items() if e.get("saved_at")]
+    """返回 saved_at 最新的 query；没有 saved_at 时返回第一个有效条目。
+
+    先过滤 sub_tasks 为空的条目，防止 0-agent 的垃圾条目被选中为"最新"。
+    """
+    valid = {q: e for q, e in entries.items() if _entry_has_subtasks(e)}
+    if not valid:
+        return None
+    dated = [(q, e.get("saved_at", "")) for q, e in valid.items() if e.get("saved_at")]
     if dated:
         return max(dated, key=lambda x: x[1])[0]
-    return next(iter(entries.keys())) if entries else None
+    return next(iter(valid.keys()))
 
 
 def _get_entry_for_viz(query: Optional[str]) -> tuple[dict, str]:
@@ -155,15 +129,6 @@ def _get_entry_for_viz(query: Optional[str]) -> tuple[dict, str]:
     return entry, target
 
 
-def _check_auth(request: Request) -> None:
-    """简易 API Key 认证。STREAMLIT_PASSWORD 为空时直接放行。"""
-    if not API_KEY:
-        return
-    key = request.headers.get("x-api-key", "")
-    if key != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-
 @app.get("/")
 def root():
     return {
@@ -177,7 +142,7 @@ def root():
 @app.get("/api/scenarios")
 def list_scenarios(request: Request):
     """列出三个预设场景及其缓存命中情况。"""
-    _check_auth(request)
+    check_auth(request)
     scenarios = [
         {"id": "market", "label": "综合市场表现", "query": "泡泡玛特最近的市场表现如何？", "page": "executive"},
         {"id": "labubu", "label": "LABUBU IP 解析", "query": "LABUBU 为什么能成为泡泡玛特的核心IP？", "page": "supply"},
@@ -259,7 +224,7 @@ def _extract_viz_data(result: dict) -> dict:
 @app.get("/api/visualize/executive")
 def visualize_executive(request: Request, query: Optional[str] = None):
     """Executive 页面数据：多 Agent 协作全景。支持 ?query= 指定分析。"""
-    _check_auth(request)
+    check_auth(request)
     entry, target_query = _get_entry_for_viz(query)
     viz = _extract_viz_data(entry["result"])
 
@@ -292,7 +257,7 @@ def visualize_executive(request: Request, query: Optional[str] = None):
 @app.get("/api/visualize/supply")
 def visualize_supply(request: Request, query: Optional[str] = None):
     """Supply 页面数据：单 Agent ReAct 推理时间线。支持 ?query= 指定分析。"""
-    _check_auth(request)
+    check_auth(request)
     entry, target_query = _get_entry_for_viz(query)
     viz = _extract_viz_data(entry["result"])
 
@@ -315,7 +280,7 @@ def visualize_supply(request: Request, query: Optional[str] = None):
 @app.get("/api/visualize/risk")
 def visualize_risk(request: Request, query: Optional[str] = None):
     """Risk 页面数据：冲突检测与仲裁。支持 ?query= 指定分析。"""
-    _check_auth(request)
+    check_auth(request)
     entry, target_query = _get_entry_for_viz(query)
     viz = _extract_viz_data(entry["result"])
 
@@ -331,20 +296,10 @@ def visualize_risk(request: Request, query: Optional[str] = None):
     }
 
 
-def _safe_normalize(query: str) -> str:
-    """包装 normalize_query：空串/控制字符/过长都转成 400，而不是抛 ValueError。"""
-    if not query or not query.strip():
-        raise HTTPException(status_code=400, detail="query is empty")
-    try:
-        return normalize_query(query)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
 @app.get("/api/history")
 def list_history(request: Request):
     """列出所有已缓存的分析记录，用于历史数据页。"""
-    _check_auth(request)
+    check_auth(request)
     entries = _load_cache()
     items = []
     for query, entry in entries.items():
@@ -365,7 +320,7 @@ def list_history(request: Request):
 @app.get("/api/analyze")
 def get_analysis(query: str, request: Request):
     """GET 方式获取缓存中的分析结果。主要用于前端直接读取。"""
-    _check_auth(request)
+    check_auth(request)
     query = _safe_normalize(query)
     entries = _load_cache()
     entry = entries.get(query)
@@ -377,9 +332,9 @@ def get_analysis(query: str, request: Request):
 @app.post("/api/analyze")
 def run_analysis(req: AnalyzeRequest, request: Request):
     """POST 提交新查询，同步执行分析。适用于简单调用方。"""
-    _check_auth(request)
+    check_auth(request)
     query = _safe_normalize(req.query)
-    settings = Settings()
+    settings = load_settings()
     registry = _build_agent_registry(settings)
     orchestrator = Orchestrator(registry, settings=settings)
     try:
@@ -391,105 +346,15 @@ def run_analysis(req: AnalyzeRequest, request: Request):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@app.post("/api/jobs")
-async def create_job(req: AnalyzeRequest, request: Request):
-    """创建分析任务，立即返回 job_id，后台运行分析。"""
-    _check_auth(request)
-    query = _safe_normalize(req.query)
-    job = job_manager.create_job(query)
-    asyncio.create_task(_run_analysis_job(job.id, query))
-    return {"job_id": job.id, "status": job.status.value, "query": query}
-
-
-@app.get("/api/jobs")
-async def list_jobs(request: Request):
-    """列出所有分析任务。"""
-    _check_auth(request)
-    jobs = job_manager.list_jobs()
-    return {
-        "jobs": [
-            {
-                "id": job.id,
-                "query": job.query,
-                "status": job.status.value,
-                "recommended_page": job.recommended_page,
-                "created_at": job.created_at,
-                "updated_at": job.updated_at,
-            }
-            for job in jobs
-        ],
-        "count": len(jobs),
-    }
-
-
-@app.get("/api/jobs/{job_id}")
-async def get_job(job_id: str, request: Request):
-    """查询 job 状态与结果摘要。"""
-    _check_auth(request)
-    job = job_manager.get_job(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="job not found")
-    return {
-        "id": job.id,
-        "query": job.query,
-        "status": job.status.value,
-        "error": job.error,
-        "recommended_page": job.recommended_page,
-        "created_at": job.created_at,
-        "updated_at": job.updated_at,
-    }
-
-
-@app.get("/api/jobs/{job_id}/events")
-async def job_events(job_id: str, request: Request):
-    """SSE 实时推送分析进度。"""
-    _check_auth(request)
-    job = job_manager.get_job(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="job not found")
-
-    async def _generator():
-        queue: asyncio.Queue[JobEvent] = asyncio.Queue()
-
-        def _listener(event: JobEvent):
-            queue.put_nowait(event)
-
-        job_manager.subscribe(job_id, _listener)
-        try:
-            # 先推送历史事件
-            for ev in job.events:
-                yield _format_event(ev)
-            # 再推送新事件，直到任务结束
-            while True:
-                try:
-                    event = await asyncio.wait_for(queue.get(), timeout=60.0)
-                except asyncio.TimeoutError:
-                    break
-                yield _format_event(event)
-                if event.stage in ("complete", "failed"):
-                    break
-        finally:
-            job_manager.unsubscribe(job_id, _listener)
-
-    def _format_event(ev: JobEvent) -> str:
-        data = json.dumps({
-            "stage": ev.stage,
-            "message": ev.message,
-            "payload": ev.payload,
-            "timestamp": ev.timestamp,
-        }, ensure_ascii=False)
-        return f"data: {data}\n\n"
-
-    return StreamingResponse(_generator(), media_type="text/event-stream")
-
-
 @app.exception_handler(Exception)
 def global_exception_handler(request: Request, exc: Exception):
-    """统一异常兜底，避免栈泄漏到前端。"""
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc), "type": type(exc).__name__},
-    )
+    """统一异常兜底：客户端只收通用文案，内部细节记服务端日志（避免栈/路径泄漏）。"""
+    log.exception("未处理异常: %s %s", request.method, request.url.path)
+    content = {"detail": "服务器内部错误，请稍后重试"}
+    if DEBUG_API:
+        content["detail"] = str(exc)
+        content["type"] = type(exc).__name__
+    return JSONResponse(status_code=500, content=content)
 
 
 if __name__ == "__main__":

@@ -23,6 +23,10 @@ class LLMRateLimitError(LLMError):
     """API 限流"""
 
 
+class LLMServerError(LLMError):
+    """LLM 服务端错误（5xx），可重试"""
+
+
 class LLMAuthError(LLMError):
     """API key 无效 / 认证失败"""
 

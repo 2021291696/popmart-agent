@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import pickle
+import threading
 import time
 from dataclasses import asdict, is_dataclass
 from enum import Enum
@@ -16,6 +17,10 @@ from .shared_context import TaskStatus
 SCHEMA_VERSION = 1
 DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60
 MAX_CACHE_BYTES = 5 * 1024 * 1024
+
+# read-modify-write 全路径共用一把锁：api.py 并发 job / app.py 重写都走这里，
+# 避免两个写者互相覆盖丢条目。
+_write_lock = threading.Lock()
 
 
 def _json_safe(value: Any) -> Any:
@@ -182,14 +187,8 @@ def load_demo_cache(
         return {}
 
 
-def save_demo_cache(
-    path: Path, cache: dict[str, dict], *, allowed_queries: set[str]
-) -> None:
-    entries = {
-        query: _serialize_entry(entry)
-        for query, entry in cache.items()
-        if query in allowed_queries and is_cacheable_analysis(entry)
-    }
+def _atomic_write_entries(path: Path, entries: dict) -> None:
+    """把 entries 原子写入 path（tmp + replace）。调用方需已持 _write_lock。"""
     payload = {"schema_version": SCHEMA_VERSION, "entries": entries}
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     if len(encoded.encode("utf-8")) > MAX_CACHE_BYTES:
@@ -198,6 +197,67 @@ def save_demo_cache(
     temp_path = path.with_suffix(path.suffix + ".tmp")
     temp_path.write_text(encoded, encoding="utf-8")
     temp_path.replace(path)
+
+
+def save_demo_cache(
+    path: Path, cache: dict[str, dict], *, allowed_queries: set[str]
+) -> None:
+    """重写 demo 缓存文件。
+
+    - 预设查询（allowed_queries）由调用方的 cache 全权决定：只保留可缓存的成功分析，
+      失败条目即被丢弃（红线：失败分析不落缓存）。
+    - 磁盘上已有的自由查询条目（api.py 写入、不在 allowed_queries 内）只要可缓存就保留，
+      避免 app.py 重写文件时擦掉 api.py 写入的自由查询。
+    """
+    with _write_lock:
+        entries = {
+            query: _serialize_entry(entry)
+            for query, entry in cache.items()
+            if query in allowed_queries and is_cacheable_analysis(entry)
+        }
+        # 保留磁盘上的自由查询条目
+        if path.exists():
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if payload.get("schema_version") == SCHEMA_VERSION:
+                    for query, raw in (payload.get("entries") or {}).items():
+                        if query in allowed_queries or query in entries:
+                            continue
+                        if not isinstance(raw, dict):
+                            continue
+                        try:
+                            decoded = _deserialize_entry(raw)
+                        except (ValueError, TypeError, AttributeError):
+                            continue
+                        if is_cacheable_analysis(decoded):
+                            entries[query] = _serialize_entry(decoded)
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                pass
+        _atomic_write_entries(path, entries)
+
+
+def upsert_analysis_entry(path: Path, query: str, entry: dict) -> bool:
+    """单条分析结果的统一写入口（api.py 自由查询用）。
+
+    - 红线：仅当 entry 通过 is_cacheable_analysis 才写入（子任务 error / 非 LLM 来源
+      / total_llm_calls<=0 等失败形态一律不落缓存）。
+    - read-modify-write 全程持锁，保留文件内其他条目（预设 + 其他自由查询）。
+    返回 True 表示已写入。
+    """
+    if not is_cacheable_analysis(entry):
+        return False
+    with _write_lock:
+        entries: dict = {}
+        if path.exists():
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(payload, dict) and isinstance(payload.get("entries"), dict):
+                    entries = dict(payload["entries"])
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                entries = {}
+        entries[query] = _serialize_entry(entry)
+        _atomic_write_entries(path, entries)
+    return True
 
 
 def migrate_pickle_cache(
@@ -240,11 +300,7 @@ def migrate_pickle_cache(
                 if query not in merged:
                     merged[query] = entry
 
+    # merged 为空时不写盘：否则会用一个空 cache 清掉磁盘上已有的有效条目
     if merged:
         save_demo_cache(json_path, merged, allowed_queries=allowed_queries)
-    elif json_path.exists():
-        try:
-            save_demo_cache(json_path, {}, allowed_queries=allowed_queries)
-        except OSError:
-            pass
     return merged
