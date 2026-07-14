@@ -81,7 +81,11 @@ class Orchestrator:
         self.settings = settings
         self.state = OrchestratorState.IDLE
 
-    def execute(self, user_query: str) -> OrchestrationResult:
+    def execute(
+        self,
+        user_query: str,
+        progress_callback: Callable[[str, str, dict], None] | None = None,
+    ) -> OrchestrationResult:
         """
         执行一次完整的Orchestration流程
 
@@ -93,6 +97,11 @@ class Orchestrator:
         ⑤ 结果写回共享面板
         ⑥ 冲突检测→仲裁→汇总→最终输出
         """
+
+        def _emit(stage: str, message: str, payload: dict):
+            if progress_callback is not None:
+                progress_callback(stage, message, payload)
+
         import uuid
         task_id = str(uuid.uuid4())[:8]
         start_time = time.time()
@@ -129,6 +138,11 @@ class Orchestrator:
             {"id": st.task_id, "agent": st.agent_name, "query": st.query, "status": st.status.value}
             for st in sub_tasks
         ]
+        _emit(
+            "decompose",
+            f"已分解为 {len(sub_tasks)} 个子任务",
+            {"sub_tasks": [{"agent": st.agent_name, "query": st.query} for st in sub_tasks]},
+        )
 
         # [MULTI] 步骤③+④：并行分发（同层级子任务同时执行）
         self.state = OrchestratorState.DISPATCH
@@ -158,6 +172,15 @@ class Orchestrator:
                     "status": st.status.value,
                     "result": st.result
                 })
+                _emit(
+                    "agent_complete",
+                    f"{st.agent_name} 完成分析",
+                    {
+                        "agent": st.agent_name,
+                        "status": st.status.value,
+                        "total_steps": st.result.get("total_steps", len(st.result.get("steps", []))) if isinstance(st.result, dict) else 0,
+                    },
+                )
             else:
                 st.status = TaskStatus.FAILED
                 st.result = {"error": f"Agent '{st.agent_name}' 未注册"}
@@ -165,6 +188,11 @@ class Orchestrator:
         # [MULTI] 步骤⑤+⑥：冲突检测+仲裁
         self.state = OrchestratorState.DETECT
         shared_ctx.detect_conflicts()
+        _emit(
+            "conflict_detect",
+            f"检测到 {len(shared_ctx.conflicts)} 个冲突",
+            {"conflicts": shared_ctx.conflicts},
+        )
 
         # 如果有冲突→追加一轮验证
         round_num = 1
@@ -177,6 +205,11 @@ class Orchestrator:
             })
             self._resolve_conflicts(shared_ctx, round_num)
             shared_ctx.detect_conflicts()
+            _emit(
+                "conflict_resolve",
+                f"第 {round_num} 轮仲裁完成",
+                {"round": round_num, "remaining_conflicts": len(shared_ctx.conflicts)},
+            )
 
         # 汇总→生成最终答案
         self.state = OrchestratorState.SYNTHESIZE
@@ -184,6 +217,11 @@ class Orchestrator:
             "task_id": task_id, "state": self.state.value,
         })
         final_answer, answer_source = self._synthesize(user_query, shared_ctx)
+        _emit(
+            "synthesize",
+            "综合报告已生成",
+            {"source": answer_source},
+        )
 
         elapsed = time.time() - start_time
 
@@ -193,6 +231,11 @@ class Orchestrator:
             "sub_tasks": len(sub_tasks), "conflicts": len(shared_ctx.conflicts),
             "state": self.state.value,
         })
+        _emit(
+            "complete",
+            "分析完成",
+            {"elapsed_seconds": round(elapsed, 2)},
+        )
 
         return OrchestrationResult(
             task_id=task_id,
