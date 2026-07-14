@@ -427,7 +427,7 @@ async def job_events(job_id: str, request: Request):
             "payload": ev.payload,
             "timestamp": ev.timestamp,
         }, ensure_ascii=False)
-        return f"event: {ev.stage}\ndata: {data}\n\n"
+        return f"data: {data}\n\n"
 
     return StreamingResponse(_generator(), media_type="text/event-stream")
 
