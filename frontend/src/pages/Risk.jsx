@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import './Risk.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
 import { fetchRiskViz } from '../services/api'
 
 export default function Risk() {
+  const [searchParams] = useSearchParams()
+  const query = searchParams.get('query') || ''
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchRiskViz()
+    setLoading(true)
+    fetchRiskViz(query)
       .then((viz) => {
         setData(viz)
         setLoading(false)
@@ -19,7 +23,7 @@ export default function Risk() {
         setError(err.message)
         setLoading(false)
       })
-  }, [])
+  }, [query])
 
   if (loading) {
     return (
@@ -38,7 +42,9 @@ export default function Risk() {
           <div className="error-card">
             <h3>⚠️ 数据未就绪</h3>
             <p>{error}</p>
-            <p className="error-hint">请先在 Streamlit 主入口跑一次「消费者风险」分析，预热缓存。</p>
+            <p className="error-hint">
+              请先在<a href="/chat">对话分析</a>提交一个问题，系统会自动生成看板数据。
+            </p>
           </div>
         </div>
       </div>
