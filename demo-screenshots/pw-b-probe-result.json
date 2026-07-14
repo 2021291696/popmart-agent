@@ -1,0 +1,39 @@
+{
+  "url": "http://127.0.0.1:8501",
+  "ok": true,
+  "steps": [
+    {
+      "name": "goto",
+      "status": "ok"
+    },
+    {
+      "name": "title",
+      "title": "泡泡玛特 Agent 分析系统"
+    },
+    {
+      "name": "streamlit_ui",
+      "detected": true
+    },
+    {
+      "name": "content_markers",
+      "has_login": true,
+      "has_logout": false,
+      "has_local_dev": true,
+      "has_preset_hint": true
+    },
+    {
+      "name": "screenshot",
+      "path": "D:\\MyAIWorkspace\\notes\\实习\\泡泡玛特重构\\demo-screenshots\\pw-b-probe-home.png",
+      "exists": true,
+      "size": 72221
+    }
+  ],
+  "body_preview": "运行配置 接入　api.deepseek.com 模型　deepseek-chat 密钥　已配置  本机开发模式：未启用登录（ALLOW_LOCAL_DEV）  编辑配置  重置配置  数据管道  当前数据版本：2026-07-09 22:02:26  刷新数据  Agent 分工 IP 情报 web_search · sentiment_analyze · trend_compare 消费者洞察 rag_query · sentiment_analyze 防伪与二手 web_search · rag_query 视图  分析  数据  MULTI-AGENT ANALYSIS SYSTEM 泡泡玛特 Agent 分析系统  多智能体协作、RAG 检索与质量自检，面向潮玩市场的深度分析工具。  ReAct 推理 RAG 检索 Hook 观测 Loop 自愈  当前知识库已载入 42 个整理",
+  "title": "泡泡玛特 Agent 分析系统",
+  "markers": {
+    "has_login": true,
+    "has_logout": false,
+    "has_local_dev": true,
+    "has_preset_hint": true
+  }
+}

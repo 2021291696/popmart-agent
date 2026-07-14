@@ -1,0 +1,95 @@
+POP MART · AGENT
+CONTROL
+工作台
+
+设置接入模型；数据页查看知识库与刷新。
+
+tune 设置
+
+database 数据
+
+历史
+
+新对话
+
+查看中 · 泡泡玛特最近的市场表现如何？
+
+face
+泡泡玛特最近的市场表现如何？
+
+分析未成功完成（4.4 秒，0 次 LLM 调用）。下方为当前可见信息，请勿当作完整成功报告。
+
+· 综合结论来自降级汇总（LLM 综合不可用或未完成）
+
+· IP 情报 失败：LLM 调用失败: Connection error.
+
+· 消费者洞察 失败：LLM 调用失败: Connection error.
+
+· IP 情报 错误：LLM 调用失败: Connection error.
+
+· 消费者洞察 错误：LLM 调用失败: Connection error.
+
+· 报告正文包含失败/不可用标记
+
+综合分析报告 · 降级汇总
+
+＃ 分析报告:泡泡玛特最近的市场表现如何？
+
+＃ 核心结论
+
+来自 ip_intelligence 的初步判断
+
+来自 consumer_insights 的初步判断
+
+＃ 关键数据
+
+(LLM 不可用,未生成结构化数据)
+
+＃ 分析
+
+＃ ip_intelligence 的发现 （该 Agent 执行失败：LLM 调用失败: Connection error.）
+
+＃ consumer_insights 的发现 （该 Agent 执行失败：LLM 调用失败: Connection error.）
+
+＃ 风险提示
+
+LLM 精修不可用,以下结论未经二次校验,请人工核对
+
+＃ 建议行动
+
+重新运行(LLM token plan 可能已耗尽)
+
+或手动验证各 Agent 给出的关键数字
+
+生成时间:2026-07-11 14:38:47 · 基于 2 个 Agent 调研
+
+各 Agent 结论
+
+IP 情报 · 质量 0.50 · 状态 failed
+
+LLM 调用失败: Connection error.
+
+未生成结论。
+
+消费者洞察 · 质量 0.50 · 状态 failed
+
+LLM 调用失败: Connection error.
+
+未生成结论。
+
+推理过程
+keyboard_arrow_right
+
+IP 情报：0 步，0 次 LLM 调用
+
+keyboard_arrow_right
+
+消费者洞察：0 步，0 次 LLM 调用
+
+keyboard_arrow_right
+
+任务统计
+
+本机开发模式：未启用登录（ALLOW_LOCAL_DEV=1）
+
+泡泡玛特 Agent 分析系统 · Python · ReAct · RAG · Hook · Loop

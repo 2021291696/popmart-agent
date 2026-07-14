@@ -1,0 +1,85 @@
+运行配置
+接入　api.deepseek.com
+模型　deepseek-chat
+密钥　已配置
+
+编辑配置
+
+重置配置
+
+数据管道
+
+当前数据版本：2026-07-09 22:02:26
+
+刷新数据
+
+Agent 分工
+IP 情报
+web_search · sentiment_analyze · trend_compare
+消费者洞察
+rag_query · sentiment_analyze
+防伪与二手
+web_search · rag_query
+视图
+
+分析
+
+数据
+
+聊天记录
+
+新对话
+
+keyboard_arrow_right
+
+最新 · LABUBU 为什么能成为泡泡玛特的核心IP？ · 缓存
+
+已返回当前数据版本的缓存结果。
+
+face
+
+LABUBU 为什么能成为泡泡玛特的核心IP？
+
+分析完成：4.7 秒，0 次 LLM 调用
+
+部分子任务未达到质量阈值，以下为当前最佳结果。
+
+综合分析报告 · 降级汇总
+分析报告:LABUBU 为什么能成为泡泡玛特的核心IP？
+核心结论
+来自 ip_intelligence 的初步判断
+关键数据
+(LLM 不可用,未生成结构化数据)
+分析
+ip_intelligence 的发现
+
+（该 Agent 执行失败：LLM 调用失败: Connection error.）
+
+风险提示
+LLM 精修不可用,以下结论未经二次校验,请人工核对
+建议行动
+
+重新运行(LLM token plan 可能已耗尽)
+
+或手动验证各 Agent 给出的关键数字
+
+生成时间:2026-07-11 10:06:52 · 基于 1 个 Agent 调研
+
+各 Agent 结论
+
+IP 情报 · 质量 0.50
+
+未生成结论。
+
+推理过程
+keyboard_arrow_down
+
+IP 情报：0 步，0 次 LLM 调用
+
+该 Agent 未返回可展示的推理步骤。
+
+keyboard_arrow_right
+
+任务统计
+
+泡泡玛特 Agent 分析系统 · Python · ReAct · RAG · Hook · Loop

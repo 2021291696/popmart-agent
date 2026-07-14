@@ -1,0 +1,10 @@
+POP MART · AGENT
+CONTROL
+工作台
+
+设置接入模型；数据页查看知识库与刷新。
+
+MULTI-AGENT ANALYSIS SYSTEM
+泡泡玛特 Agent 分析系统
+
+多智能体协作、RAG 检索与质量自检，面向潮玩市场的深度分析工具。
