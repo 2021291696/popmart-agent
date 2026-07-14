@@ -31,8 +31,8 @@ test.describe('Executive 页面 - 多 Agent 协作全景', () => {
     await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {})
     await page.waitForTimeout(500)
 
-    // 检查元数据区域（用精确选择器）
-    const metaText = page.locator('.meta-footer .meta-text, p.meta-text')
+    // 检查元数据区域（footer 标签 + meta-text 类）
+    const metaText = page.locator('footer.meta-text, .page-footer')
     await expect(metaText.first()).toContainText('2026-07-13', { timeout: 5000 })
   })
 
