@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="ui-sans-serif, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <text x="400" y="40" font-size="18" font-weight="700" text-anchor="middle" fill="#f1f5f9">数据来源可信路径</text>
+
+  <g transform="translate(60,90)">
+    <rect width="160" height="60" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1"/>
+    <text x="80" y="26" font-size="12" text-anchor="middle" fill="#fff">API 端点</text>
+    <text x="80" y="44" font-size="9" text-anchor="middle" fill="#93c5fd">微博/小红书/闲鱼</text>
+  </g>
+  <g transform="translate(60,200)">
+    <rect width="160" height="60" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1"/>
+    <text x="80" y="26" font-size="12" text-anchor="middle" fill="#fff">LLM 评估</text>
+    <text x="80" y="44" font-size="9" text-anchor="middle" fill="#93c5fd">评估 + 路线选择</text>
+  </g>
+  <g transform="translate(60,310)">
+    <rect width="160" height="60" rx="8" fill="#1e3a8a" stroke="#60a5fa" stroke-width="1"/>
+    <text x="80" y="26" font-size="12" text-anchor="middle" fill="#fff">Hook 监控</text>
+    <text x="80" y="44" font-size="9" text-anchor="middle" fill="#93c5fd">每步 token / 质量</text>
+  </g>
+
+  <g transform="translate(320,200)">
+    <circle r="78" fill="#0f766e" stroke="#5eead4" stroke-width="2"/>
+    <text y="-8" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">ImprovementLoop</text>
+    <text y="14" font-size="11" text-anchor="middle" fill="#ccfbf1">self-Loop</text>
+    <text y="34" font-size="10" text-anchor="middle" fill="#ccfbf1">动态重试</text>
+  </g>
+
+  <g transform="translate(540,90)">
+    <rect width="200" height="60" rx="8" fill="#7c2d12" stroke="#fb923c" stroke-width="1"/>
+    <text x="100" y="26" font-size="12" text-anchor="middle" fill="#fff">demo_cache.json</text>
+    <text x="100" y="44" font-size="9" text-anchor="middle" fill="#fed7aa">缓存 · 3 预设秒出</text>
+  </g>
+  <g transform="translate(540,200)">
+    <rect width="200" height="60" rx="8" fill="#7c2d12" stroke="#fb923c" stroke-width="1"/>
+    <text x="100" y="26" font-size="12" text-anchor="middle" fill="#fff">ReAct · Action · Observation</text>
+    <text x="100" y="44" font-size="9" text-anchor="middle" fill="#fed7aa">1000-6000px 截图</text>
+  </g>
+  <g transform="translate(540,310)">
+    <rect width="200" height="60" rx="8" fill="#7c2d12" stroke="#fb923c" stroke-width="1"/>
+    <text x="100" y="26" font-size="12" text-anchor="middle" fill="#fff">ReAct RAG</text>
+    <text x="100" y="44" font-size="9" text-anchor="middle" fill="#fed7aa">ChromaDB · 缓存 85%</text>
+  </g>
+
+  <line x1="220" y1="120" x2="320" y2="200" stroke="#94a3b8" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="220" y1="230" x2="320" y2="230" stroke="#94a3b8" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="220" y1="340" x2="320" y2="260" stroke="#94a3b8" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="398" y1="220" x2="540" y2="120" stroke="#94a3b8" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="398" y1="230" x2="540" y2="230" stroke="#94a3b8" stroke-width="1" marker-end="url(#arr)"/>
+  <line x1="398" y1="240" x2="540" y2="340" stroke="#94a3b8" stroke-width="1" marker-end="url(#arr)"/>
+
+  <text x="400" y="470" font-size="11" text-anchor="middle" fill="#cbd5e1">三源交叉 · 自反思 · 缓存兜底</text>
+</svg>
