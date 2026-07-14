@@ -67,7 +67,7 @@ class JobManager:
         job = self._jobs.get(job_id)
         if not job:
             return None
-        if status:
+        if status is not None:
             job.status = status
         if event:
             job.events.append(event)
@@ -77,26 +77,28 @@ class JobManager:
         return job
 
     def complete_job(self, job_id: str, result: dict, recommended_page: str) -> Job | None:
+        job = self._jobs.get(job_id)
+        if not job:
+            return None
+        job.result = result
+        job.recommended_page = recommended_page
         event = JobEvent(
             stage="complete",
             message="分析完成",
             payload={"recommended_page": recommended_page},
         )
-        job = self.update_job(job_id, JobStatus.COMPLETED, event=event)
-        if job:
-            job.result = result
-            job.recommended_page = recommended_page
-        return job
+        return self.update_job(job_id, JobStatus.COMPLETED, event=event)
 
     def fail_job(self, job_id: str, error: str) -> Job | None:
+        job = self._jobs.get(job_id)
+        if not job:
+            return None
+        job.error = error
         event = JobEvent(
             stage="failed",
             message=f"任务失败: {error}",
         )
-        job = self.update_job(job_id, JobStatus.FAILED, event=event)
-        if job:
-            job.error = error
-        return job
+        return self.update_job(job_id, JobStatus.FAILED, event=event)
 
     def subscribe(self, job_id: str, listener: Callable[[JobEvent], None]) -> None:
         self._listeners.setdefault(job_id, []).append(listener)
@@ -104,3 +106,5 @@ class JobManager:
     def unsubscribe(self, job_id: str, listener: Callable[[JobEvent], None]) -> None:
         if job_id in self._listeners:
             self._listeners[job_id] = [l for l in self._listeners[job_id] if l is not listener]
+            if not self._listeners[job_id]:
+                del self._listeners[job_id]

@@ -74,6 +74,26 @@ def test_fail_missing_job_returns_none():
     assert manager.fail_job("not-exist", "LLM error") is None
 
 
+def test_complete_event_listener_sees_result():
+    manager = JobManager()
+    job = manager.create_job("test")
+    seen = {}
+
+    def listener(event):
+        seen["event"] = event
+        seen["result"] = job.result
+        seen["recommended_page"] = job.recommended_page
+        seen["status"] = job.status
+
+    manager.subscribe(job.id, listener)
+    manager.complete_job(job.id, {"answer": "ok"}, "executive")
+
+    assert seen["event"].stage == "complete"
+    assert seen["result"] == {"answer": "ok"}
+    assert seen["recommended_page"] == "executive"
+    assert seen["status"] == JobStatus.COMPLETED
+
+
 def test_unsubscribe():
     manager = JobManager()
     job = manager.create_job("test")
