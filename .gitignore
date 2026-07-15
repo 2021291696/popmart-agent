@@ -43,3 +43,10 @@ frontend/demo-screenshots/
 
 # 运行日志
 streamlit*.log
+
+# 本地专属文档（面试材料与 vault 工作手册，不入库）
+interview-qa-prep.md
+resume-project-bullets.md
+narrative-script.md
+self-check-list.md
+_CLAUDE.md
