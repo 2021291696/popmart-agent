@@ -57,7 +57,14 @@ def logging_hook(event: HookEvent, context: dict):
     }})
 
 
+_default_hooks_registered = False
+
+
 def register_default_hooks():
-    """注册 logging hook，监听所有事件。"""
+    """注册 logging hook，监听所有事件（幂等：每 session 重复调用不会重复注册）。"""
+    global _default_hooks_registered
+    if _default_hooks_registered:
+        return
     for event in HookEvent:
         hooks.register(event, lambda ctx, e=event: logging_hook(e, ctx))
+    _default_hooks_registered = True

@@ -1,179 +1,189 @@
-"""视觉主题层 — 把 OpenDesign portfolio 设计系统翻译成 Streamlit。
+"""Accessible, dependency-free Streamlit theme helpers."""
+from __future__ import annotations
 
-设计语言:暗色编辑风 + 暖陶土/金/橄榄三色 + Fraunces/Sora/JetBrains Mono。
-为「工具/仪表盘」场景适配:字号收敛、密度提高,不用 portfolio 的巨型 hero。
+import html
 
-载体约束:Streamlit 只能通过注入 <style> 定制。这里集中所有 CSS,
-app.py 只调 inject_theme() 一次 + 用几个 render 辅助函数产出定制组件。
-"""
 import streamlit as st
 
-# ── 设计 token(与 opendesign/design-systems/portfolio/tokens 对齐)──
 _CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
 :root {
-  --accent:        oklch(60% 0.19 20);
-  --accent-glow:   oklch(60% 0.19 20 / 0.15);
-  --accent-subtle: oklch(60% 0.07 20 / 0.10);
-  --gold:          oklch(72% 0.14 82);
-  --gold-dim:      oklch(55% 0.10 80);
-  --olive:         oklch(58% 0.08 135);
-  --bg-1:  oklch(15% 0.010 260);
-  --bg-2:  oklch(20% 0.010 260);
-  --bg-3:  oklch(24% 0.010 260);
-  --bg-4:  oklch(28% 0.010 260);
-  --fg-1:  oklch(93% 0.005 90);
-  --fg-2:  oklch(70% 0.008 90);
-  --fg-3:  oklch(50% 0.008 90);
-  --border-1: oklch(30% 0.010 260);
-  --border-2: oklch(24% 0.010 260);
-  --font-heading: 'Fraunces', Georgia, serif;
-  --font-body: 'Sora', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --accent: #e35d58;
+  --accent-soft: rgba(227, 93, 88, 0.14);
+  --gold: #d7ad56;
+  --bg-1: #151515;
+  --bg-2: #1d1d1d;
+  --bg-3: #252525;
+  --fg-1: #f2f0eb;
+  --fg-2: #c6c2ba;
+  --fg-3: #96928b;
+  --border-1: #3d3b38;
+  --border-2: #2c2b29;
+  --font-heading: Georgia, 'Times New Roman', serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: Consolas, 'SFMono-Regular', monospace;
 }
 
-/* ── 全局底 + 噪点纹理 + 环境光 ── */
 .stApp {
   background: var(--bg-1);
   color: var(--fg-1);
   font-family: var(--font-body);
-  font-weight: 300;
+  font-size: 15px;
 }
-.stApp::before {
-  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
+.main .block-container {
+  max-width: 1080px;
+  padding-top: 2rem;
+  padding-bottom: 5rem;
 }
-.stApp::after {
-  content: ""; position: fixed; z-index: 0; pointer-events: none;
-  width: 60vw; height: 60vw; top: -22vw; right: -18vw; border-radius: 50%;
-  background: radial-gradient(circle, var(--accent-glow), transparent 62%);
-  filter: blur(48px);
+h1, h2, h3 {
+  font-family: var(--font-heading) !important;
+  letter-spacing: 0 !important;
 }
-.main .block-container { position: relative; z-index: 1; max-width: 1080px; padding-top: 2.4rem; }
-
-/* ── 排版 ── */
-h1, h2, h3 { font-family: var(--font-heading) !important; letter-spacing: -0.02em; }
-.stApp p, .stApp li, .stApp label, .stMarkdown { font-family: var(--font-body); line-height: 1.6; }
+.stApp p, .stApp li, .stApp label, .stMarkdown {
+  font-family: var(--font-body);
+  line-height: 1.65;
+  letter-spacing: 0;
+}
 code, pre, .stCode { font-family: var(--font-mono) !important; }
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {
+  color: var(--fg-3);
+  font-size: 12px !important;
+}
 
-/* ── 侧栏 ── */
 section[data-testid="stSidebar"] {
   background: var(--bg-2);
   border-right: 1px solid var(--border-1);
 }
-section[data-testid="stSidebar"] * { font-family: var(--font-body); }
+.sidebar-config {
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 2;
+  overflow-wrap: anywhere;
+  margin-bottom: 0.6rem;
+}
+.sidebar-agent {
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  margin-bottom: 0.7rem;
+  overflow-wrap: anywhere;
+}
+.sidebar-agent b { color: var(--fg-2); }
 
-/* ── 按钮 ── */
+section[data-testid="stSidebar"] button[kind="primary"] {
+  background: linear-gradient(180deg, #ef6b65, #e35d58);
+  border-color: var(--accent);
+}
+
+.material-symbols-rounded,
+[data-testid="stIconMaterial"] {
+  font-family: 'Material Symbols Rounded' !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
 .stButton > button, .stFormSubmitButton > button {
-  font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.04em;
-  border-radius: 4px; border: 1px solid var(--border-1);
-  background: var(--bg-3); color: var(--fg-1);
-  transition: all 0.22s cubic-bezier(.2,.7,.3,1);
+  min-height: 40px;
+  border-radius: 6px;
+  border: 1px solid var(--border-1);
+  background: var(--bg-3);
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: 0;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 .stButton > button:hover, .stFormSubmitButton > button:hover {
-  border-color: var(--accent); color: var(--fg-1);
-  box-shadow: 0 0 0 1px var(--accent), 0 6px 20px var(--accent-glow);
-  transform: translateY(-1px);
+  border-color: var(--accent);
+  color: var(--fg-1);
+  background: #2d2928;
 }
 button[kind="primary"], .stFormSubmitButton button[kind="primary"] {
-  background: var(--accent); border-color: var(--accent); color: oklch(98% 0.01 90);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
-button[kind="primary"]:hover { background: oklch(64% 0.20 20); }
+button[kind="primary"]:hover { background: #ef6b65; }
 
-/* ── 输入 ── */
-.stTextInput input, .stTextArea textarea {
-  background: var(--bg-2) !important; color: var(--fg-1) !important;
-  border: 1px solid var(--border-1) !important; border-radius: 6px !important;
+.stTextInput input, .stTextArea textarea, [data-testid="stChatInput"] textarea {
+  background: var(--bg-2) !important;
+  color: var(--fg-1) !important;
+  border: 1px solid var(--border-1) !important;
+  border-radius: 6px !important;
   font-family: var(--font-body) !important;
+  font-size: 14px !important;
 }
-.stTextInput input:focus, .stTextArea textarea:focus {
+.stTextInput input:focus, .stTextArea textarea:focus,
+[data-testid="stChatInput"] textarea:focus {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px var(--accent-subtle) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
 }
-
-/* ── tabs ── */
-.stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid var(--border-1); }
-.stTabs [data-baseweb="tab"] {
-  font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.03em;
-  color: var(--fg-3); background: transparent;
-}
-.stTabs [aria-selected="true"] { color: var(--accent) !important; }
-
-/* ── alert / spinner 微调 ── */
-.stAlert { border-radius: 8px; border-left: 2px solid var(--accent); }
-.stSpinner > div { border-top-color: var(--accent) !important; }
-
-/* ── 分隔线 ── */
+.stAlert { border-radius: 6px; }
+.stExpander { border-color: var(--border-1) !important; }
 hr { border-color: var(--border-2) !important; }
-
-/* 隐藏 streamlit 默认页眉/菜单,减少工具感杂讯 */
 #MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; height: 0; }
+
+@media (max-width: 640px) {
+  .main .block-container {
+    width: 100%;
+    padding: 1rem 0.85rem 6rem;
+  }
+  section[data-testid="stSidebar"] {
+    width: min(320px, 86vw) !important;
+  }
+  h1 { font-size: 2rem !important; line-height: 1.12 !important; }
+  [data-testid="stHorizontalBlock"] {
+    flex-wrap: wrap;
+  }
+  [data-testid="column"] {
+    min-width: min(100%, 220px) !important;
+    flex: 1 1 220px !important;
+  }
+  .stButton > button { width: 100%; }
+}
 </style>
 """
 
-
 def inject_theme() -> None:
-    """注入全局 CSS。app 启动时调一次。"""
     st.markdown(_CSS, unsafe_allow_html=True)
 
-
 def render_hero(title: str, tagline: str) -> None:
-    """定制主标题区 — Fraunces 大标题 + mono kicker + 一条 accent 细线。"""
     st.markdown(
-        f"""
-        <div style="position:relative;z-index:1;padding:0.5rem 0 1.6rem;">
-          <div style="font-family:var(--font-mono);font-size:0.64rem;letter-spacing:0.16em;
-                      color:var(--gold);text-transform:uppercase;margin-bottom:0.6rem;">
-            ◆ Multi-Agent Analysis System
-          </div>
-          <h1 style="font-family:var(--font-heading);font-weight:300;font-size:clamp(2.4rem,5vw,3.6rem);
-                     line-height:1.05;letter-spacing:-0.025em;margin:0;color:var(--fg-1);">
-            {title}
-          </h1>
-          <div style="width:64px;height:2px;background:var(--accent);margin:1rem 0 0.9rem;"></div>
-          <p style="font-family:var(--font-body);font-weight:300;color:var(--fg-2);
-                    font-size:0.95rem;margin:0;max-width:52ch;">{tagline}</p>
-        </div>
-        """,
+        "<div class='app-hero'>"
+        "<div style='font-family:var(--font-mono);font-size:12px;color:var(--gold);"
+        "margin-bottom:0.6rem;'>MULTI-AGENT ANALYSIS SYSTEM</div>"
+        "<h1 style='font-size:2.5rem;line-height:1.1;margin:0;color:var(--fg-1);'>"
+        f"{html.escape(title)}</h1>"
+        "<div style='width:64px;height:2px;background:var(--accent);"
+        "margin:1rem 0 0.9rem;'></div>"
+        "<p style='color:var(--fg-2);font-size:15px;margin:0;max-width:58ch;'>"
+        f"{html.escape(tagline)}</p></div>",
         unsafe_allow_html=True,
     )
-
 
 def render_pipeline_badges() -> None:
-    """能力管线徽章 — mono 小标签,替代原来那行灰 caption。"""
     items = ["ReAct 推理", "RAG 检索", "Hook 观测", "Loop 自愈"]
-    chips = "".join(
-        f"""<span style="font-family:var(--font-mono);font-size:0.66rem;letter-spacing:0.06em;
-             color:var(--fg-2);border:1px solid var(--border-1);border-radius:20px;
-             padding:0.28rem 0.7rem;background:var(--bg-2);">{x}</span>"""
-        for x in items
-    )
+    chips = "".join(f"<span>{html.escape(item)}</span>" for item in items)
     st.markdown(
-        f'<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin:-0.4rem 0 1.6rem;">{chips}</div>',
+        "<div style='display:flex;gap:0.5rem;flex-wrap:wrap;margin:1rem 0 1.6rem;'>"
+        f"<style>.pipeline-badges span{{font-size:12px;color:var(--fg-2);border:1px solid "
+        "var(--border-1);border-radius:6px;padding:0.3rem 0.65rem;background:var(--bg-2);}}"
+        f"</style><div class='pipeline-badges' style='display:contents'>{chips}</div></div>",
         unsafe_allow_html=True,
     )
-
 
 def render_section_label(text: str) -> None:
-    """区块 mono 标签 — 策展式 section marker。"""
     st.markdown(
-        f"""<div style="font-family:var(--font-mono);font-size:0.64rem;letter-spacing:0.14em;
-             color:var(--gold);text-transform:uppercase;margin:0.4rem 0 0.6rem;">— {text}</div>""",
+        "<div style='font-family:var(--font-mono);font-size:12px;color:var(--gold);"
+        f"margin:1.2rem 0 0.65rem;'>{html.escape(text)}</div>",
         unsafe_allow_html=True,
     )
 
-
 def sidebar_label(text: str) -> None:
-    """侧栏内的 section 标题 — gold mono 大写 + 短下间距。
-
-    与 render_section_label 区别:颜色/间距为侧栏排版优化,
-    避免 gold 在每个 detail panel 里都出现(detail panel 用 fg-2/fg-3 更好)。
-    """
     st.markdown(
-        f"""<div style="font-family:var(--font-mono);font-size:0.62rem;letter-spacing:0.14em;
-                    color:var(--gold);text-transform:uppercase;margin:0 0 0.6rem;">{text}</div>""",
+        "<div style='font-family:var(--font-mono);font-size:12px;color:var(--gold);"
+        f"margin:0.8rem 0 0.55rem;'>{html.escape(text)}</div>",
         unsafe_allow_html=True,
     )

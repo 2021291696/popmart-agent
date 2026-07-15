@@ -35,7 +35,7 @@ class ImprovementLoop:
         for sub in result.get("subtask_results", []):
             score = sub.get("quality_score", 1.0)
             if score < self.threshold:
-                failed[sub["agent"]] = {
+                failed[sub.get("agent", "unknown")] = {
                     "score": score,
                     "reason_code": sub.get("quality_reason_code", "unknown"),
                 }

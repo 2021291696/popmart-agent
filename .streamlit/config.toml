@@ -3,14 +3,15 @@
 
 [theme]
 base = "dark"
-primaryColor = "#c65f4e"           # 陶土红 accent — oklch(60% 0.19 20)
-backgroundColor = "#14161c"        # 近黑冷底 — oklch(15% 0.01 260)
-secondaryBackgroundColor = "#1c1f27"  # 表面层 — oklch(20% 0.01 260)
-textColor = "#ebe9e4"              # 暖白 — oklch(93% 0.005 90)
+primaryColor = "#e35d58"
+backgroundColor = "#151515"
+secondaryBackgroundColor = "#1d1d1d"
+textColor = "#f2f0eb"
 font = "sans serif"
 
 [server]
 headless = true
+address = "127.0.0.1"
 
 [browser]
 gatherUsageStats = false

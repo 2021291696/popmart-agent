@@ -1,0 +1,49 @@
+运行配置
+接入　api.deepseek.com
+模型　deepseek-chat
+密钥　已配置
+
+编辑配置
+
+重置配置
+
+数据管道
+
+当前数据版本：2026-07-09 22:02:26
+
+刷新数据
+
+Agent 分工
+IP 情报
+web_search · sentiment_analyze · trend_compare
+消费者洞察
+rag_query · sentiment_analyze
+防伪与二手
+web_search · rag_query
+视图
+
+分析
+
+数据
+
+MULTI-AGENT ANALYSIS SYSTEM
+泡泡玛特 Agent 分析系统
+
+多智能体协作、RAG 检索与质量自检，面向潮玩市场的深度分析工具。
+
+ReAct 推理
+RAG 检索
+Hook 观测
+Loop 自愈
+
+当前知识库已载入 42 个整理后 chunks。
+
+分析问题
+
+综合市场表现
+
+LABUBU IP 解析
+
+消费者风险
+
+泡泡玛特 Agent 分析系统 · Python · ReAct · RAG · Hook · Loop

@@ -20,7 +20,7 @@ def _inject_sentence_transformers_mock(model_mock: MagicMock) -> MagicMock:
 
 def test_api_embedder_returns_vectors():
     settings = Settings(
-        llm_base_url="https://api.example.com/v1",
+        llm_base_url="https://api.openai.com/v1",
         llm_api_key="sk-test",
         embedding_model="text-embedding-3-small",
     )
@@ -46,7 +46,7 @@ def test_api_embedder_returns_vectors():
 
 def test_api_embedder_batches_large_input():
     settings = Settings(
-        llm_base_url="https://api.example.com/v1",
+        llm_base_url="https://api.openai.com/v1",
         llm_api_key="sk-test",
         embedding_model="text-embedding-3-small",
     )
@@ -68,7 +68,7 @@ def test_api_embedder_batches_large_input():
 
 def test_api_embedder_raises_without_api_key():
     settings = Settings(
-        llm_base_url="https://api.example.com/v1",
+        llm_base_url="https://api.openai.com/v1",
         llm_api_key="",
         embedding_model="text-embedding-3-small",
     )
@@ -140,7 +140,7 @@ def test_local_embedder_missing_dependency_raises():
 
 def test_get_embedder_returns_api_when_configured():
     settings = Settings(
-        llm_base_url="https://api.example.com/v1",
+        llm_base_url="https://api.openai.com/v1",
         llm_api_key="sk-test",
         embedding_model="text-embedding-3-small",
         embedding_provider="api",
@@ -157,7 +157,7 @@ def test_get_embedder_returns_api_when_configured():
 
 def test_get_embedder_falls_back_to_local_on_api_failure():
     settings = Settings(
-        llm_base_url="https://api.example.com/v1",
+        llm_base_url="https://api.openai.com/v1",
         llm_api_key="sk-test",
         embedding_model="text-embedding-3-small",
         embedding_provider="api",
@@ -180,7 +180,7 @@ def test_get_embedder_falls_back_to_local_on_api_failure():
 
 def test_get_embedder_uses_local_when_provider_is_local():
     settings = Settings(
-        llm_base_url="https://api.example.com/v1",
+        llm_base_url="https://api.openai.com/v1",
         llm_api_key="sk-test",
         embedding_model="local-model",
         embedding_provider="local",

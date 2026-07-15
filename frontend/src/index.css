@@ -1,0 +1,281 @@
+/* 全局样式 - 基于 Stripe 专业克制 + Linear 温暖感 */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* 配色方案 */
+  --color-primary: #3C5A78;
+  --color-accent: #FF6B9D;
+  --color-bg: #F7F5F1;
+  --color-surface: #FFFFFF;
+  --color-text: #1E2227;
+  --color-text-muted: #6B7077;
+  --color-border: #E7E3DA;
+
+  /* 字体 */
+  --font-body: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
+
+  /* 间距 */
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 48px;
+  --spacing-xl: 80px;
+
+  /* 圆角 */
+  --radius: 6px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+h1 { font-size: 48px; font-weight: 600; }
+h2 { font-size: 32px; font-weight: 600; }
+h3 { font-size: 24px; font-weight: 500; }
+h4 { font-size: 18px; font-weight: 500; }
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 150ms ease-out;
+}
+
+a:hover {
+  color: var(--color-accent);
+}
+
+button {
+  font-family: var(--font-body);
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  transition: all 150ms ease-out;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  transition: border-color 150ms ease-out;
+}
+
+.card:hover {
+  border-color: var(--color-primary);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  padding: 12px 32px;
+  border-radius: var(--radius);
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: #2E4760;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  padding: 12px 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-weight: 500;
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-primary);
+  background: rgba(60, 90, 120, 0.04);
+}
+
+/* ====== 共享布局样式（Task 2-3 抽出） ====== */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app main {
+  flex: 1;
+}
+
+.demo-banner {
+  background: rgba(60, 90, 120, 0.06);
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+  color: var(--color-text-muted);
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ====== 全局面加载/错误样式（History/Chat/AnalysisProgress 与三个看板页共用） ====== */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  color: var(--color-text-muted);
+  min-height: 60vh;
+}
+
+.loading-pulse {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.error-card {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.error-card h3 {
+  color: #c53030;
+  margin-bottom: var(--spacing-sm);
+}
+
+.error-hint {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  margin-top: var(--spacing-sm);
+}
+
+/* 进度页「正在处理」行的呼吸效果（与圆形 loading-pulse 区分，仅改变透明度） */
+.pulse {
+  animation: pulse-text 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+.error-boundary {
+  max-width: 600px;
+  margin: 80px auto;
+  padding: 40px;
+  text-align: center;
+}
+
+.error-boundary pre {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  text-align: left;
+  font-size: 13px;
+  overflow: auto;
+}
+
+.not-found {
+  padding: 120px 0;
+  text-align: center;
+}
+
+.not-found h1 {
+  font-size: 96px;
+  margin-bottom: 16px;
+}
+
+.not-found p {
+  font-size: 18px;
+  color: var(--color-text-muted);
+  margin-bottom: 32px;
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--color-text);
+}
+
+@media (max-width: 640px) {
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: white;
+    border-bottom: 1px solid var(--color-border);
+    padding: 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .nav-links.open {
+    display: flex;
+  }
+
+  .nav-toggle {
+    display: block;
+  }
+}
+

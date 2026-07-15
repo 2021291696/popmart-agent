@@ -1555,7 +1555,7 @@ def test_parse_tool_call():
 
 
 def test_max_steps_constant():
-    assert MAX_STEPS == 5
+    assert MAX_STEPS == 3
 ```
 
 **tests/test_rag_retriever.py：**

@@ -8,11 +8,15 @@
 ③ 新增冲突检测：当两个Agent的结论矛盾时自动触发仲裁
 """
 import json
+import logging
+import threading
 import time
 from enum import Enum
 from typing import Any
 
 from .llm_client import LLMClient
+
+log = logging.getLogger("shared_context")
 
 
 class TaskStatus(Enum):
@@ -50,11 +54,12 @@ class SharedContext:
         # [并发安全] 锁定的数据版本 (active collection 名), 用于审计和验收
         self.data_version: str | None = None
         self._meta: dict[str, Any] = {}
-        self._lock = __import__("threading").Lock()
+        self._lock = threading.Lock()
+        # 冲突检测 LLMClient 惰性缓存：避免每轮 detect 都重新 load_settings + 建客户端
+        self._llm_client: LLMClient | None = None
 
     def set_agent_result(self, agent_name: str, result: dict):
         """Agent将结果写入共享面板 (线程安全)"""
-        import threading as _t
         with self._lock:
             self.agent_results[agent_name] = {
                 "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -63,7 +68,6 @@ class SharedContext:
 
     def set_meta(self, key: str, value: Any) -> None:
         """写入元信息 (例如 wait_for_refresh, refresh_completed_during_wait)。"""
-        import threading as _t
         with self._lock:
             self._meta[key] = value
 
@@ -72,13 +76,38 @@ class SharedContext:
 
     def get_meta_snapshot(self) -> dict:
         """返回元信息快照(调试/日志用)。"""
-        import threading as _t
         with self._lock:
             return dict(self._meta)
 
     def get_agent_result(self, agent_name: str) -> dict | None:
         """读取某个Agent的结果"""
         return self.agent_results.get(agent_name)
+
+    def _get_llm_client(self) -> LLMClient:
+        """惰性构建并缓存冲突检测用 LLMClient（避免每轮都 load_settings + 新建）。"""
+        if self._llm_client is None:
+            from .config import load_settings
+            self._llm_client = LLMClient(load_settings())
+        return self._llm_client
+
+    @staticmethod
+    def _extract_answer(entry: Any) -> str:
+        """从 agent_results 条目提取最终答案文本。
+
+        兼容三种写入结构：
+        - orchestrator 首轮: {"query", "status", "result": {...}}
+        - _resolve_conflicts 验证轮: {"verification_round", "conflict_with", "result": {...}}
+        - 直接写入(旧结构/测试): {"final_answer": ...}
+        """
+        if not isinstance(entry, dict):
+            return ""
+        inner = entry.get("result")
+        if isinstance(inner, dict):
+            for key in ("final_answer", "answer", "summary"):
+                value = inner.get(key)
+                if value:
+                    return str(value)
+        return str(entry.get("final_answer") or "")
 
     def detect_conflicts(self) -> list[dict]:
         """
@@ -89,9 +118,6 @@ class SharedContext:
 
         LLM 失败时降级为不检测（避免误报）。
         """
-        import logging
-        from .config import load_settings
-
         agent_names = list(self.agent_results.keys())
         if len(agent_names) < 2:
             self.conflicts = []
@@ -101,8 +127,7 @@ class SharedContext:
 
         # 用 LLM 检测
         try:
-            settings = load_settings()
-            client = LLMClient(settings)
+            client = self._get_llm_client()
 
             # 两两检测
             for i in range(len(agent_names)):
@@ -110,11 +135,8 @@ class SharedContext:
                     agent_a = agent_names[i]
                     agent_b = agent_names[j]
 
-                    result_a = self.agent_results.get(agent_a, {})
-                    result_b = self.agent_results.get(agent_b, {})
-
-                    answer_a = result_a.get("final_answer", "")
-                    answer_b = result_b.get("final_answer", "")
+                    answer_a = self._extract_answer(self.agent_results.get(agent_a, {}))
+                    answer_b = self._extract_answer(self.agent_results.get(agent_b, {}))
 
                     if not answer_a or not answer_b:
                         continue
@@ -170,19 +192,8 @@ Agent B ({agent_b}): {answer_b}
 
         except Exception as e:
             # LLM 失败时降级为不检测（而非误报）
-            log = logging.getLogger("shared_context")
             log.warning(f"LLM 冲突检测失败，降级为不检测: {e}")
             self.conflicts = []
 
         return self.conflicts
-
-    def _extract_trend_claim(self, agent_name: str, text: str) -> str:
-        """从结果文本中提取趋势判断"""
-        for word in ["上升", "下降", "增长", "下滑", "涨", "跌", "持平"]:
-            idx = text.find(word)
-            if idx >= 0:
-                start = max(0, idx - 20)
-                end = min(len(text), idx + 20)
-                return f"...{text[start:end]}..."
-        return f"{agent_name}的趋势判断"
 

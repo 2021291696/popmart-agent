@@ -7,6 +7,8 @@ import os
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
+from .security import infer_protocol, validate_endpoint
+
 CONFIG_FILE = ".user_config.json"
 KEYRING_SERVICE = "popmart-agent"
 KEYRING_USERNAME = "llm_api_key"
@@ -33,6 +35,7 @@ class Settings:
     log_dir: str = "logs"
     quality_threshold: float = 0.6
     loop_max_iterations: int = 2
+    allow_local_endpoint: bool = False
 
     # Embedding 配置
     embedding_provider: str = "api"  # "api" | "local"
@@ -51,36 +54,68 @@ def load_settings() -> Settings:
     """加载配置。优先级：.user_config.json > .env > 默认值"""
     s = Settings()
 
-    # .env 兜底 —— 支持多种命名
-    for key_env in ("MINIMAX_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY"):
-        if os.environ.get(key_env):
-            s.llm_api_key = os.environ[key_env]
-            break
-    if os.environ.get("LLM_PROVIDER"):
-        s.llm_provider = os.environ["LLM_PROVIDER"]
-    if os.environ.get("LLM_BASE_URL"):
-        s.llm_base_url = os.environ["LLM_BASE_URL"]
-    if os.environ.get("LLM_MODEL"):
-        s.llm_model = os.environ["LLM_MODEL"]
-
-    # .user_config.json 覆盖
+    # .user_config.json 覆盖 provider/base_url/model（优先级高于 .env）
     cfg = _config_path()
+    configured_fields: set[str] = set()
     if cfg.exists():
         try:
             with open(cfg, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            # API key 读取优先级(strix M1):OS keyring > base64 迁移兜底
-            # 注:base64 非加密,仅作旧配置迁移读取;新写入一律走 keyring。
-            kr = _keyring_available()
-            if kr is not None:
-                try:
-                    stored = kr.get_password(KEYRING_SERVICE, KEYRING_USERNAME)
-                    if stored:
-                        s.llm_api_key = stored
-                except Exception:
-                    pass
-            # keyring 没拿到 → 尝试从旧 base64 字段迁移(一次性)
-            if not s.llm_api_key and data.get("llm_api_key_enc"):
+            for k, v in data.items():
+                if k in ("llm_api_key", "llm_api_key_enc"):
+                    continue
+                if hasattr(s, k):
+                    setattr(s, k, v)
+                    configured_fields.add(k)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # .env 覆盖（只在未配置 user_config 时生效；user_config 已存在时保持其为最高优先级）
+    env_overrides = {
+        "llm_provider": "LLM_PROVIDER",
+        "llm_base_url": "LLM_BASE_URL",
+        "llm_model": "LLM_MODEL",
+    }
+    for field_name, env_name in env_overrides.items():
+        if field_name not in configured_fields and os.environ.get(env_name):
+            setattr(s, field_name, os.environ[env_name])
+    if "allow_local_endpoint" not in configured_fields:
+        s.allow_local_endpoint = os.environ.get("ALLOW_LOCAL_ENDPOINT") == "1"
+
+    # API key：keyring > 匹配 endpoint 的环境变量 > base64 迁移兜底
+    kr = _keyring_available()
+    if kr is not None:
+        try:
+            stored = kr.get_password(KEYRING_SERVICE, KEYRING_USERNAME)
+            if stored:
+                s.llm_api_key = stored
+        except Exception:
+            pass
+
+    if not s.llm_api_key:
+        # 按最终确定的 endpoint 匹配环境变量 key，避免跨 provider 污染
+        base_lower = (s.llm_base_url or "").lower()
+        if "minimaxi" in base_lower:
+            env_priority = ["MINIMAX_API_KEY"]
+        elif "deepseek" in base_lower:
+            env_priority = ["DEEPSEEK_API_KEY"]
+        elif "anthropic" in base_lower:
+            env_priority = ["ANTHROPIC_API_KEY"]
+        elif "openai" in base_lower:
+            env_priority = ["OPENAI_API_KEY"]
+        else:
+            env_priority = ["MINIMAX_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY"]
+        for key_env in env_priority:
+            if os.environ.get(key_env):
+                s.llm_api_key = os.environ[key_env]
+                break
+
+    # keyring 没拿到 → 尝试从旧 base64 字段迁移(一次性)
+    if not s.llm_api_key and cfg.exists():
+        try:
+            with open(cfg, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("llm_api_key_enc"):
                 import base64
                 try:
                     s.llm_api_key = base64.b64decode(
@@ -88,14 +123,8 @@ def load_settings() -> Settings:
                     ).decode("utf-8")
                 except Exception:
                     s.llm_api_key = ""
-            # 其他字段(排除所有 key 相关字段)
-            for k, v in data.items():
-                if k in ("llm_api_key", "llm_api_key_enc"):
-                    continue
-                if hasattr(s, k):
-                    setattr(s, k, v)
         except (json.JSONDecodeError, OSError):
-            pass  # 损坏 → 用 .env/默认值
+            pass
 
     # 迁移：早期 .user_config.json 可能存了 provider=anthropic + MiniMax /anthropic URL，
     # 但 MiniMax /anthropic 端点对中文输出返回空（见 app._infer_protocol 注释）。
@@ -114,6 +143,10 @@ def save_settings(s: Settings) -> None:
     绝不落盘到 .user_config.json。keyring 不可用时抛错,拒绝明文/base64 落盘。
     其余非敏感配置照常写 json。
     """
+    s.llm_base_url = validate_endpoint(
+        s.llm_base_url, allow_local=s.allow_local_endpoint
+    )
+    s.llm_provider = infer_protocol(s.llm_base_url)
     cfg = _config_path()
     data = asdict(s)
     api_key = data.pop("llm_api_key", None)
@@ -130,8 +163,10 @@ def save_settings(s: Settings) -> None:
     # 清理旧 base64 字段(迁移后不再需要)
     data.pop("llm_api_key_enc", None)
 
-    with open(cfg, "w", encoding="utf-8") as f:
+    temp_cfg = cfg.with_suffix(cfg.suffix + ".tmp")
+    with open(temp_cfg, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    temp_cfg.replace(cfg)
     try:
         os.chmod(cfg, 0o600)
     except OSError:
@@ -148,8 +183,9 @@ def reset_settings() -> None:
     if kr is not None:
         try:
             kr.delete_password(KEYRING_SERVICE, KEYRING_USERNAME)
-        except Exception:
-            pass  # 不存在则忽略
+        except Exception as exc:
+            if exc.__class__.__name__ != "PasswordDeleteError":
+                raise RuntimeError("系统密钥存储清理失败") from exc
 
 
 def has_valid_settings() -> bool:

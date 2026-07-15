@@ -140,7 +140,7 @@ def test_visualize_executive(mock_cache):
     from api import app
     client = TestClient(app)
 
-    response = client.get("/api/visualize/executive")
+    response = client.get("/api/visualize/executive?query=泡泡玛特最近的市场表现如何？")
     assert response.status_code == 200
 
     data = response.json()
@@ -161,7 +161,7 @@ def test_visualize_supply(mock_cache):
     from api import app
     client = TestClient(app)
 
-    response = client.get("/api/visualize/supply")
+    response = client.get("/api/visualize/supply?query=LABUBU 为什么能成为泡泡玛特的核心IP？")
     assert response.status_code == 200
 
     data = response.json()
@@ -181,7 +181,7 @@ def test_visualize_risk(mock_cache):
     from api import app
     client = TestClient(app)
 
-    response = client.get("/api/visualize/risk")
+    response = client.get("/api/visualize/risk?query=泡泡玛特消费者投诉和二手假货风险有多高？")
     assert response.status_code == 200
 
     data = response.json()

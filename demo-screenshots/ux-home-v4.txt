@@ -1,0 +1,45 @@
+POP MART · AGENT
+CONTROL
+工作台
+
+设置接入模型；数据页查看知识库与刷新。
+
+tune 设置
+
+database 数据
+
+MULTI-AGENT ANALYSIS SYSTEM
+泡泡玛特 Agent 分析系统
+
+多智能体协作、RAG 检索与质量自检，面向潮玩市场的深度分析工具。
+
+ReAct 推理
+RAG 检索
+Hook 观测
+Loop 自愈
+
+当前知识库已载入 42 个整理后 chunks。
+
+提出问题
+
+默认建议每 10 秒轮换 · 按 Tab /「Tab 填入」写入发送框 · 点下方场景将直接发送并重新分析（不走缓存）
+
+当前默认 · 泡泡玛特最近的市场表现如何？
+
+Tab 填入
+
+发送
+
+场景速发
+
+综合市场表现
+
+LABUBU IP 解析
+
+消费者风险
+
+默认建议（每 10s 刷新）：泡泡玛特消费者投诉和二手假货风险有多高？
+
+本机开发模式：未启用登录（ALLOW_LOCAL_DEV=1）
+
+泡泡玛特 Agent 分析系统 · Python · ReAct · RAG · Hook · Loop

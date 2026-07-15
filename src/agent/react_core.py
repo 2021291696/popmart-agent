@@ -12,7 +12,7 @@ from src.error_handler import LLMTimeoutError, LLMAuthError, LLMError, InvalidCo
 from src.hooks import hooks, HookEvent
 from src.llm_client import LLMClient, get_llm_client
 
-MAX_STEPS = 5
+MAX_STEPS = 3
 
 
 def call_llm(client: LLMClient, system_prompt: str, context: list[dict], settings: Settings) -> str:
@@ -29,7 +29,8 @@ def execute_action(action: str, action_input: str, available_tools: dict) -> str
 
     tool = available_tools.get(action)
     if tool is None:
-        return f"错误：未知工具 '{action}'。可用工具：{list(available_tools.keys())}。请尝试替代工具。"
+        # 前缀与失败判定（is_failure 的 startswith）保持一致，确保未知工具也计入失败语义
+        return f"工具执行错误：未知工具 '{action}'。可用工具：{list(available_tools.keys())}。请尝试替代工具。"
 
     try:
         if isinstance(action_input, str):
@@ -50,7 +51,12 @@ def parse_llm_output(output: str) -> tuple[Optional[str], Optional[str], Optiona
     """解析 LLM 输出为 Thought/Action/Action Input 三元组。"""
     thought_match = re.search(r'Thought:\s*(.+?)(?=\n(?:Action|Observation)|$)', output, re.DOTALL)
     action_match = re.search(r'Action:\s*(.+?)(?=\n|$)', output)
-    action_input_match = re.search(r'Action Input:\s*(.+)$', output, re.DOTALL)
+    # 非贪婪 + 下一字段行锚定：DOTALL 下贪婪会一路吃到文末，
+    # 把 LLM 幻觉出来的后续 Thought/Action/Observation 行也吞进 Action Input
+    action_input_match = re.search(
+        r'Action Input:\s*(.+?)(?=\n\s*(?:Thought|Action|Observation)\s*:|\s*\Z)',
+        output, re.DOTALL,
+    )
 
     thought = thought_match.group(1).strip() if thought_match else None
     action = action_match.group(1).strip() if action_match else None
@@ -68,6 +74,16 @@ def parse_llm_output(output: str) -> tuple[Optional[str], Optional[str], Optiona
         action_input = thought or output.strip() or None
 
     return thought, action, action_input
+
+
+def _clean_forced_output(raw: str) -> str:
+    """MAX_STEPS/FALLBACK 强制收尾时，LLM 可能仍按 ReAct 格式输出
+    （Thought/Action: DONE/Action Input: <正文>）。剥掉脚手架只留正文；
+    没有脚手架时原样返回。"""
+    if not raw:
+        return raw
+    _, _, action_input = parse_llm_output(raw)
+    return action_input or raw
 
 
 def react_loop(
@@ -132,6 +148,8 @@ def react_loop(
         }
 
         if action == "DONE" or action is None:
+            # 注：parse_llm_output 已把 action=None 归一化成 "DONE"，
+            # 这里的 `action is None` 是防御性死分支，保留以防上游解析改动。
             step_record["result"] = action_input if action_input else "完成"
             steps.append(step_record)
             if on_step:
@@ -178,11 +196,13 @@ def react_loop(
         context.append({"role": "user", "content": f"Observation: {observation}"})
 
         unavailable_count = sum(1 for t in tool_stats.values() if t["unavailable"])
+        # 注：tool_stats[*]["unavailable"] 当前没有任何代码路径置 True，
+        # 下面这个"所有工具不可用"的兜底分支是不可达死代码，保留作为 v2 容错预案。
         if unavailable_count >= len(tool_stats):
             if verbose:
                 print("[ReAct] ⚠️ 所有工具不可用 — 基于已有信息给出部分答案")
             context.append({"role": "user", "content": "所有工具都失败了。请基于当前已有的信息给出最佳答案，并标注置信度为'低'。"})
-            final = call_llm(client, system_prompt, context, settings)
+            final = _clean_forced_output(call_llm(client, system_prompt, context, settings))
             llm_call_count += 1
             steps.append({"step": len(steps) + 1, "action": "FALLBACK", "result": final})
             if on_step:
@@ -199,7 +219,7 @@ def react_loop(
         if verbose:
             print(f"[ReAct] ⚠️ 达到最大步数({MAX_STEPS}) — 强制结束")
         context.append({"role": "user", "content": "请基于已收集的所有信息,直接输出最终业务分析。用 Markdown 格式,包含:核心结论、关键数据(带来源)、分析、风险、置信度。不要描述你做了什么,直接给分析。"})
-        final = call_llm(client, system_prompt, context, settings)
+        final = _clean_forced_output(call_llm(client, system_prompt, context, settings))
         llm_call_count += 1
         steps.append({"step": len(steps) + 1, "action": "MAX_STEPS", "result": final})
         if on_step:

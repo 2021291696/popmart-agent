@@ -4,11 +4,13 @@
 1. 从 .demo_cache.json 读取已缓存的成功分析结果；
 2. 在需要时调用 orchestrator.execute() 执行新查询。
 
+Job/SSE 相关端点已抽到 src/api_jobs.py（APIRouter），本文件通过 include_router 挂载。
 认证按用户要求先不启用 - 后续接入时设置 STREAMLIT_PASSWORD 即可启用。
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -16,14 +18,32 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
 # 复用现有安全函数做输入清洗（即使不开认证也应清洗恶意输入）
-from src.security import normalize_query
+from src.query_router import _keyword_fallback
+from src.api_jobs import (
+    AnalyzeRequest,
+    _build_agent_registry,
+    _orchestration_result_to_dict,
+    _run_analysis_job,  # noqa: F401  （测试补丁点）
+    _safe_normalize,
+    _save_result_to_cache as _jobs_save_result_to_cache,
+    check_auth,
+    job_manager,  # noqa: F401  （兼容旧引用）
+    router as jobs_router,
+)
+
+_check_auth = check_auth  # 兼容旧引用
+from src.config import load_settings
+from src.orchestrator import Orchestrator
+
+log = logging.getLogger("api")
 
 ROOT = Path(__file__).parent
 CACHE_FILE = ROOT / ".demo_cache.json"
 API_KEY = os.getenv("STREAMLIT_PASSWORD", "")  # 留空即关闭认证
+# 默认只回通用错误文案；排障时设 API_DEBUG=1 才把内部异常细节带给客户端
+DEBUG_API = os.getenv("API_DEBUG", "").lower() in {"1", "true", "yes"}
 
 app = FastAPI(
     title="泡泡玛特 Agent API",
@@ -31,47 +51,82 @@ app = FastAPI(
     description="FDE 面试作品：把 Multi-Agent 分析能力暴露为 HTTP 接口。",
 )
 
-# CORS：前端开发服务器在 3000
+# CORS：前端开发服务器在 3000，vite preview 在 4173
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# 挂载 Job/SSE 端点（/api/jobs*）
+app.include_router(jobs_router)
 
-class AnalyzeRequest(BaseModel):
-    query: str
+
+def _save_result_to_cache(query: str, result: dict) -> bool:
+    """写缓存兼容入口：转发到 src.api_jobs 的统一实现（走 api 的 CACHE_FILE）。"""
+    return _jobs_save_result_to_cache(query, result, path=CACHE_FILE)
 
 
 def _load_cache() -> dict:
-    """读取 Streamlit 缓存。
-
-    demo_cache.json 结构为 {schema_version, entries: {query: result}}
-    本函数返回 entries 子字典，便于按 query 直接索引。
-    """
+    """读取 Streamlit 缓存，统一返回 {query: {"result": ..., "saved_at": ...}}。"""
     if not CACHE_FILE.exists():
         return {}
     try:
         with open(CACHE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        if isinstance(data, dict) and "entries" in data:
-            return data["entries"]
-        if isinstance(data, dict):
-            return data
-        return {}
+        raw = data.get("entries", data) if isinstance(data, dict) else {}
+        normalized = {}
+        for query, entry in raw.items():
+            if isinstance(entry, dict) and "result" in entry:
+                normalized[query] = entry
+            else:
+                normalized[query] = {"result": entry, "saved_at": ""}
+        return normalized
     except (json.JSONDecodeError, OSError):
         return {}
 
 
-def _check_auth(request: Request) -> None:
-    """简易 API Key 认证。STREAMLIT_PASSWORD 为空时直接放行。"""
-    if not API_KEY:
-        return
-    key = request.headers.get("x-api-key", "")
-    if key != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+def _entry_has_subtasks(entry: dict) -> bool:
+    """条目是否含有效子任务（用于过滤 0-agent 的垃圾条目）。"""
+    result = entry.get("result") if isinstance(entry, dict) else None
+    if not isinstance(result, dict):
+        return False
+    return bool(result.get("sub_tasks"))
+
+
+def _get_latest_query(entries: dict) -> Optional[str]:
+    """返回 saved_at 最新的 query；没有 saved_at 时返回第一个有效条目。
+
+    先过滤 sub_tasks 为空的条目，防止 0-agent 的垃圾条目被选中为"最新"。
+    """
+    valid = {q: e for q, e in entries.items() if _entry_has_subtasks(e)}
+    if not valid:
+        return None
+    dated = [(q, e.get("saved_at", "")) for q, e in valid.items() if e.get("saved_at")]
+    if dated:
+        return max(dated, key=lambda x: x[1])[0]
+    return next(iter(valid.keys()))
+
+
+def _get_entry_for_viz(query: Optional[str]) -> tuple[dict, str]:
+    """根据 query 获取缓存条目；query 为空则取最新。返回 (entry, query)。"""
+    entries = _load_cache()
+    if not entries:
+        raise HTTPException(status_code=404, detail="缓存为空")
+    target = query or _get_latest_query(entries)
+    if not target:
+        raise HTTPException(status_code=404, detail="没有可用的分析结果")
+    entry = entries.get(target)
+    if not entry:
+        raise HTTPException(status_code=404, detail=f"未找到 {target} 的分析结果")
+    return entry, target
 
 
 @app.get("/")
@@ -87,7 +142,7 @@ def root():
 @app.get("/api/scenarios")
 def list_scenarios(request: Request):
     """列出三个预设场景及其缓存命中情况。"""
-    _check_auth(request)
+    check_auth(request)
     scenarios = [
         {"id": "market", "label": "综合市场表现", "query": "泡泡玛特最近的市场表现如何？", "page": "executive"},
         {"id": "labubu", "label": "LABUBU IP 解析", "query": "LABUBU 为什么能成为泡泡玛特的核心IP？", "page": "supply"},
@@ -105,9 +160,8 @@ def list_scenarios(request: Request):
 # 可视化 API：从缓存中的 Agent 分析结果提取可视化数据
 # ============================================================
 
-def _extract_viz_data(entry: dict) -> dict:
-    """从缓存条目提取可视化数据。"""
-    result = entry.get("result", {})
+def _extract_viz_data(result: dict) -> dict:
+    """从分析结果 dict 提取可视化数据。"""
     if isinstance(result, dict):
         sub_tasks = result.get("sub_tasks", [])
         conflicts = result.get("conflicts", [])
@@ -168,22 +222,15 @@ def _extract_viz_data(entry: dict) -> dict:
 
 
 @app.get("/api/visualize/executive")
-def visualize_executive(request: Request):
-    """Executive 页面数据：多 Agent 协作全景。"""
-    _check_auth(request)
-    query = "泡泡玛特最近的市场表现如何？"
-    cache = _load_cache()
-    entries = cache.get("entries", cache) if isinstance(cache, dict) else {}
-    entry = entries.get(query)
-
-    if not entry:
-        raise HTTPException(status_code=404, detail="Executive 报告未在缓存中，请先在 Streamlit 跑一次分析")
-
-    viz = _extract_viz_data(entry)
+def visualize_executive(request: Request, query: Optional[str] = None):
+    """Executive 页面数据：多 Agent 协作全景。支持 ?query= 指定分析。"""
+    check_auth(request)
+    entry, target_query = _get_entry_for_viz(query)
+    viz = _extract_viz_data(entry["result"])
 
     # Executive 视图：协作流程 + 置信度 + 结论卡片
     return {
-        "query": query,
+        "query": target_query,
         "title": "泡泡玛特综合分析",
         "agents": [
             {
@@ -208,24 +255,17 @@ def visualize_executive(request: Request):
 
 
 @app.get("/api/visualize/supply")
-def visualize_supply(request: Request):
-    """Supply 页面数据：单 Agent ReAct 推理时间线。"""
-    _check_auth(request)
-    query = "LABUBU 为什么能成为泡泡玛特的核心IP？"
-    cache = _load_cache()
-    entries = cache.get("entries", cache) if isinstance(cache, dict) else {}
-    entry = entries.get(query)
-
-    if not entry:
-        raise HTTPException(status_code=404, detail="Supply 报告未在缓存中，请先在 Streamlit 跑一次分析")
-
-    viz = _extract_viz_data(entry)
+def visualize_supply(request: Request, query: Optional[str] = None):
+    """Supply 页面数据：单 Agent ReAct 推理时间线。支持 ?query= 指定分析。"""
+    check_auth(request)
+    entry, target_query = _get_entry_for_viz(query)
+    viz = _extract_viz_data(entry["result"])
 
     # 选第一个 agent 展示其 ReAct 过程
     agent = viz["agents"][0] if viz["agents"] else None
 
     return {
-        "query": query,
+        "query": target_query,
         "title": "LABUBU IP 深度分析",
         "agent": agent,
         "tool_distribution": [
@@ -238,21 +278,14 @@ def visualize_supply(request: Request):
 
 
 @app.get("/api/visualize/risk")
-def visualize_risk(request: Request):
-    """Risk 页面数据：冲突检测与仲裁。"""
-    _check_auth(request)
-    query = "泡泡玛特消费者投诉和二手假货风险有多高？"
-    cache = _load_cache()
-    entries = cache.get("entries", cache) if isinstance(cache, dict) else {}
-    entry = entries.get(query)
-
-    if not entry:
-        raise HTTPException(status_code=404, detail="Risk 报告未在缓存中，请先在 Streamlit 跑一次分析")
-
-    viz = _extract_viz_data(entry)
+def visualize_risk(request: Request, query: Optional[str] = None):
+    """Risk 页面数据：冲突检测与仲裁。支持 ?query= 指定分析。"""
+    check_auth(request)
+    entry, target_query = _get_entry_for_viz(query)
+    viz = _extract_viz_data(entry["result"])
 
     return {
-        "query": query,
+        "query": target_query,
         "title": "消费者风险分析",
         "agents": viz["agents"],
         "conflicts": viz["conflicts"],
@@ -263,47 +296,65 @@ def visualize_risk(request: Request):
     }
 
 
-def _safe_normalize(query: str) -> str:
-    """包装 normalize_query：空串/控制字符/过长都转成 400，而不是抛 ValueError。"""
-    if not query or not query.strip():
-        raise HTTPException(status_code=400, detail="query is empty")
-    try:
-        return normalize_query(query)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@app.get("/api/history")
+def list_history(request: Request):
+    """列出所有已缓存的分析记录，用于历史数据页。"""
+    check_auth(request)
+    entries = _load_cache()
+    items = []
+    for query, entry in entries.items():
+        result = entry.get("result", {}) if isinstance(entry, dict) else {}
+        sub_tasks = result.get("sub_tasks", []) if isinstance(result, dict) else []
+        items.append({
+            "query": query,
+            "saved_at": entry.get("saved_at", ""),
+            "total_agents": len(sub_tasks),
+            "elapsed_seconds": result.get("elapsed_seconds", 0) if isinstance(result, dict) else 0,
+            "snippet": (result.get("final_answer", "") if isinstance(result, dict) else "")[:120],
+            "recommended_page": _keyword_fallback(query),
+        })
+    items.sort(key=lambda x: x["saved_at"], reverse=True)
+    return {"items": items, "count": len(items)}
 
 
 @app.get("/api/analyze")
 def get_analysis(query: str, request: Request):
     """GET 方式获取缓存中的分析结果。主要用于前端直接读取。"""
-    _check_auth(request)
+    check_auth(request)
     query = _safe_normalize(query)
-    cache = _load_cache()
-    entry = cache.get(query)
+    entries = _load_cache()
+    entry = entries.get(query)
     if not entry:
         raise HTTPException(status_code=404, detail="analysis not found in cache")
-    return entry
+    return entry["result"]
 
 
 @app.post("/api/analyze")
 def run_analysis(req: AnalyzeRequest, request: Request):
-    """POST 提交新查询。当前阶段复用缓存；未来可在此调用 orchestrator.execute()。"""
-    _check_auth(request)
+    """POST 提交新查询，同步执行分析。适用于简单调用方。"""
+    check_auth(request)
     query = _safe_normalize(req.query)
-    cache = _load_cache()
-    entry = cache.get(query)
-    if not entry:
-        raise HTTPException(status_code=404, detail="analysis not found in cache")
-    return entry
+    settings = load_settings()
+    registry = _build_agent_registry(settings)
+    orchestrator = Orchestrator(registry, settings=settings)
+    try:
+        result = orchestrator.execute(query)
+        result_dict = _orchestration_result_to_dict(result)
+        _save_result_to_cache(query, result_dict)
+        return {"query": query, "result": result_dict}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.exception_handler(Exception)
 def global_exception_handler(request: Request, exc: Exception):
-    """统一异常兜底，避免栈泄漏到前端。"""
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc), "type": type(exc).__name__},
-    )
+    """统一异常兜底：客户端只收通用文案，内部细节记服务端日志（避免栈/路径泄漏）。"""
+    log.exception("未处理异常: %s %s", request.method, request.url.path)
+    content = {"detail": "服务器内部错误，请稍后重试"}
+    if DEBUG_API:
+        content["detail"] = str(exc)
+        content["type"] = type(exc).__name__
+    return JSONResponse(status_code=500, content=content)
 
 
 if __name__ == "__main__":

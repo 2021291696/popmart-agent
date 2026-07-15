@@ -1,0 +1,35 @@
+keyboard_double_arrow_left
+POP MART · AGENT
+CONTROL
+工作台
+
+设置接入模型；数据页查看知识库与刷新。
+
+tune 设置
+
+database 数据
+
+← 返回
+
+MULTI-AGENT ANALYSIS SYSTEM
+泡泡玛特 Agent 分析系统
+
+配置受信任的模型供应商。API Key 只保存到系统密钥存储。
+
+Base URL
+
+允许本机模型地址（仅 localhost / 127.0.0.1）
+
+API Key
+
+系统密钥存储中已有密钥；页面不会读取或回显其内容。
+
+模型
+
+deepseek-chat
+
+获取模型
+
+保存并启动
+
+取消

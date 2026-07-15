@@ -9,17 +9,17 @@ test.describe('Supply 页面 - ReAct 推理时间线', () => {
 
   test('显示 ReAct 时间线步骤（至少 3 步）', async ({ page }) => {
     await page.goto('/supply')
-    await page.waitForTimeout(1000)
 
     const dots = page.locator('.timeline-dot')
+    await expect(dots.first()).toBeVisible({ timeout: 8000 })
     const count = await dots.count()
     expect(count).toBeGreaterThanOrEqual(3)
   })
 
   test('时间线包含 Thought/Action/Observation 三要素', async ({ page }) => {
     await page.goto('/supply')
-    await page.waitForTimeout(1000)
 
+    await expect(page.locator('.timeline-item').first()).toBeVisible({ timeout: 8000 })
     const content = await page.content()
     expect(content).toContain('Thought')
     expect(content).toContain('Action')
@@ -28,8 +28,8 @@ test.describe('Supply 页面 - ReAct 推理时间线', () => {
 
   test('显示工具调用统计表格', async ({ page }) => {
     await page.goto('/supply')
-    await page.waitForTimeout(1000)
 
+    await expect(page.locator('.tools-card')).toBeVisible({ timeout: 8000 })
     const content = await page.content()
     expect(content).toContain('web_search')
     expect(content).toContain('sentiment_analyze')
@@ -38,8 +38,8 @@ test.describe('Supply 页面 - ReAct 推理时间线', () => {
 
   test('显示最终结论', async ({ page }) => {
     await page.goto('/supply')
-    await page.waitForTimeout(1000)
 
+    await expect(page.locator('.report-card')).toBeVisible({ timeout: 8000 })
     const content = await page.content()
     expect(content).toContain('稀缺性营销')
   })

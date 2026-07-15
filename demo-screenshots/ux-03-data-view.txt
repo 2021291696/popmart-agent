@@ -1,0 +1,55 @@
+keyboard_double_arrow_left
+运行配置
+接入　api.deepseek.com
+模型　deepseek-chat
+密钥　已配置
+
+编辑配置
+
+重置配置
+
+数据管道
+
+当前数据版本：2026-07-09 22:02:26
+
+刷新数据
+
+Agent 分工
+IP 情报
+web_search · sentiment_analyze · trend_compare
+消费者洞察
+rag_query · sentiment_analyze
+防伪与二手
+web_search · rag_query
+视图
+
+分析
+
+数据
+
+整理后
+
+原始
+
+MULTI-AGENT ANALYSIS SYSTEM
+数据库 · 整理后数据
+
+展示当前向量库对应的结构化摘要。
+
+整理时间：2026-07-09 22:02:26 · 模型：deepseek-chat · 4 条来源
+
+keyboard_arrow_right
+
+泡泡玛特官网首页
+
+keyboard_arrow_right
+
+百度百科·泡泡玛特
+
+keyboard_arrow_right
+
+新浪财经 9992.HK
+
+keyboard_arrow_right
+
+36氪 泡泡玛特搜索

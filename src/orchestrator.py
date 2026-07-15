@@ -8,6 +8,7 @@
 因为泡泡玛特业务问题天然有主次——Orchestrator作为单一责任者，避免"两个Agent聊起来忘了要干什么"。
 """
 import json
+import re
 import time
 from enum import Enum
 from typing import Callable
@@ -81,7 +82,11 @@ class Orchestrator:
         self.settings = settings
         self.state = OrchestratorState.IDLE
 
-    def execute(self, user_query: str) -> OrchestrationResult:
+    def execute(
+        self,
+        user_query: str,
+        progress_callback: Callable[[str, str, dict], None] | None = None,
+    ) -> OrchestrationResult:
         """
         执行一次完整的Orchestration流程
 
@@ -93,6 +98,11 @@ class Orchestrator:
         ⑤ 结果写回共享面板
         ⑥ 冲突检测→仲裁→汇总→最终输出
         """
+
+        def _emit(stage: str, message: str, payload: dict):
+            if progress_callback is not None:
+                progress_callback(stage, message, payload)
+
         import uuid
         task_id = str(uuid.uuid4())[:8]
         start_time = time.time()
@@ -129,6 +139,27 @@ class Orchestrator:
             {"id": st.task_id, "agent": st.agent_name, "query": st.query, "status": st.status.value}
             for st in sub_tasks
         ]
+        _emit(
+            "decompose",
+            f"已分解为 {len(sub_tasks)} 个子任务",
+            {"sub_tasks": [{"agent": st.agent_name, "query": st.query} for st in sub_tasks]},
+        )
+
+        # [短路] 无关问题（空 sub_tasks）：不派发 Agent、不让 _synthesize 凭空编报告，
+        # 直接返回固定文案。final_answer_source="fallback" → 按红线不落缓存。
+        if not sub_tasks:
+            elapsed = time.time() - start_time
+            self.state = OrchestratorState.COMPLETE
+            return OrchestrationResult(
+                task_id=task_id,
+                user_query=user_query,
+                sub_tasks=[],
+                conflicts=[],
+                final_answer="该问题与泡泡玛特业务无关，请换个角度提问。",
+                final_answer_source="fallback",
+                total_rounds=0,
+                elapsed_seconds=round(elapsed, 2),
+            )
 
         # [MULTI] 步骤③+④：并行分发（同层级子任务同时执行）
         self.state = OrchestratorState.DISPATCH
@@ -158,6 +189,15 @@ class Orchestrator:
                     "status": st.status.value,
                     "result": st.result
                 })
+                _emit(
+                    "agent_complete",
+                    f"{st.agent_name} 完成分析",
+                    {
+                        "agent": st.agent_name,
+                        "status": st.status.value,
+                        "total_steps": st.result.get("total_steps", len(st.result.get("steps", []))) if isinstance(st.result, dict) else 0,
+                    },
+                )
             else:
                 st.status = TaskStatus.FAILED
                 st.result = {"error": f"Agent '{st.agent_name}' 未注册"}
@@ -165,6 +205,11 @@ class Orchestrator:
         # [MULTI] 步骤⑤+⑥：冲突检测+仲裁
         self.state = OrchestratorState.DETECT
         shared_ctx.detect_conflicts()
+        _emit(
+            "conflict_detect",
+            f"检测到 {len(shared_ctx.conflicts)} 个冲突",
+            {"conflicts": shared_ctx.conflicts},
+        )
 
         # 如果有冲突→追加一轮验证
         round_num = 1
@@ -175,8 +220,13 @@ class Orchestrator:
                 "task_id": task_id, "conflicts": len(shared_ctx.conflicts),
                 "round": round_num, "state": self.state.value,
             })
-            self._resolve_conflicts(shared_ctx, round_num)
+            self._resolve_conflicts(shared_ctx, round_num, sub_tasks)
             shared_ctx.detect_conflicts()
+            _emit(
+                "conflict_resolve",
+                f"第 {round_num} 轮仲裁完成",
+                {"round": round_num, "remaining_conflicts": len(shared_ctx.conflicts)},
+            )
 
         # 汇总→生成最终答案
         self.state = OrchestratorState.SYNTHESIZE
@@ -184,6 +234,11 @@ class Orchestrator:
             "task_id": task_id, "state": self.state.value,
         })
         final_answer, answer_source = self._synthesize(user_query, shared_ctx)
+        _emit(
+            "synthesize",
+            "综合报告已生成",
+            {"source": answer_source},
+        )
 
         elapsed = time.time() - start_time
 
@@ -193,6 +248,11 @@ class Orchestrator:
             "sub_tasks": len(sub_tasks), "conflicts": len(shared_ctx.conflicts),
             "state": self.state.value,
         })
+        _emit(
+            "complete",
+            "分析完成",
+            {"elapsed_seconds": round(elapsed, 2)},
+        )
 
         return OrchestrationResult(
             task_id=task_id,
@@ -256,17 +316,11 @@ class Orchestrator:
                 max_tokens=1000,
             )
 
-            # 解析 JSON（容错：去掉可能的 markdown 包裹）
-            response_clean = response.strip()
-            if response_clean.startswith("```json"):
-                response_clean = response_clean[7:]
-            if response_clean.startswith("```"):
-                response_clean = response_clean[3:]
-            if response_clean.endswith("```"):
-                response_clean = response_clean[:-3]
-            response_clean = response_clean.strip()
-
-            result = json.loads(response_clean)
+            # 解析 JSON（容错：LLM 可能带前言/后记/markdown 围栏，先抽取第一个 {...} 块）
+            match = re.search(r'\{.*\}', response, re.DOTALL)
+            if not match:
+                raise ValueError(f"LLM 分解结果不含 JSON 块: {response[:200]}")
+            result = json.loads(match.group(0))
             sub_tasks_data = result.get("sub_tasks", [])
 
             # 转换为 SubTask 对象
@@ -291,7 +345,7 @@ class Orchestrator:
             from .error_handler import LLMError
             raise LLMError(f"任务分解失败：{str(e)}。请检查 LLM 配置或稍后重试。") from e
 
-    def _resolve_conflicts(self, ctx: SharedContext, round_num: int):
+    def _resolve_conflicts(self, ctx: SharedContext, round_num: int, sub_tasks: list[SubTask] | None = None):
         """
         [MULTI] 冲突仲裁
 
@@ -300,29 +354,36 @@ class Orchestrator:
         它追加一轮：请两个Agent各自引用数据来源重新回答。
         为什么？因为Orchestrator没有领域专业知识，它判断不了"Dimio热度到底涨还是跌"。
         但可以让两个Agent拿出证据——证据对比后矛盾自然解开。
+
+        验证轮结果会回写 SubTask.result（附加 arbitration 信息），
+        否则 OrchestrationResult/缓存/前端看不到仲裁后的答案。
         """
         for conflict in ctx.conflicts:
             agent_a = conflict["agent_a"]
             agent_b = conflict["agent_b"]
 
             # 追加一轮：要求引用来源
-            if agent_a in self.agents:
-                verification_query = f"请重新回答并明确引用数据来源。你的结论和{agent_b}的结论矛盾。请区分地域（国内/海外）和时间范围。"
-                result = self.agents[agent_a](verification_query, ctx)
-                ctx.set_agent_result(agent_a, {
+            for agent_name, other in ((agent_a, agent_b), (agent_b, agent_a)):
+                if agent_name not in self.agents:
+                    continue
+                verification_query = f"请重新回答并明确引用数据来源。你的结论和{other}的结论矛盾。请区分地域（国内/海外）和时间范围。"
+                result = self.agents[agent_name](verification_query, ctx)
+                ctx.set_agent_result(agent_name, {
                     "verification_round": round_num,
-                    "conflict_with": agent_b,
+                    "conflict_with": other,
                     "result": result
                 })
-
-            if agent_b in self.agents:
-                verification_query = f"请重新回答并明确引用数据来源。你的结论和{agent_a}的结论矛盾。请区分地域（国内/海外）和时间范围。"
-                result = self.agents[agent_b](verification_query, ctx)
-                ctx.set_agent_result(agent_b, {
-                    "verification_round": round_num,
-                    "conflict_with": agent_a,
-                    "result": result
-                })
+                # 回写 SubTask.result：保留 Agent 结果原结构，附加仲裁元信息
+                if sub_tasks and isinstance(result, dict):
+                    for st in sub_tasks:
+                        if st.agent_name == agent_name:
+                            st.result = {
+                                **result,
+                                "arbitration": {
+                                    "verification_round": round_num,
+                                    "conflict_with": other,
+                                },
+                            }
 
     def _synthesize(self, query: str, ctx: SharedContext) -> tuple[str, str]:
         """返回 (final_answer, source)。source="llm" 或 "fallback"。"""
