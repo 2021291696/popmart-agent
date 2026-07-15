@@ -9,19 +9,14 @@ export default function Nav() {
   const links = [
     { path: '/', label: '首页' },
     { path: '/chat', label: '对话分析' },
-    { path: '/history', label: '历史数据' },
+    { path: '/data', label: '数据' },
     { path: '/executive', label: '老板早会' },
     { path: '/supply', label: '备货分析' },
     { path: '/risk', label: '客诉应对' },
   ]
 
-  // 「对话分析」在 /chat 和分析进度页 /progress/* 都保持高亮
-  const isActive = (path) => {
-    if (path === '/chat') {
-      return location.pathname === '/chat' || location.pathname.startsWith('/progress/')
-    }
-    return location.pathname === path
-  }
+  // /progress/* 是数据刷新与看板刷新共用的过渡页，不高亮任何导航项
+  const isActive = (path) => location.pathname === path
 
   return (
     <nav className="nav">

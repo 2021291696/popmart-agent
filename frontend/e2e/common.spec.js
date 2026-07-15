@@ -1,4 +1,4 @@
-// 通用 e2e 测试：路由 + 错误处理 + 降级
+// 通用 e2e 测试：路由 + 导航 + 错误处理
 import { test, expect } from './fixtures.js'
 
 test.describe('通用页面行为', () => {
@@ -12,15 +12,26 @@ test.describe('通用页面行为', () => {
     await expect(page.locator('.not-found')).toContainText(/404|不存在/, { timeout: 5000 })
   })
 
-  test('API 失败且本地副本未命中时显示错误提示（不白屏）', async ({ page }) => {
-    // 重新 route 让 API 返回错误（本地副本默认 404 → 降级未命中）
-    await page.route(/\/api\/visualize\/executive/, (route) =>
+  test('/history 路由已移除 → 显示 404 页', async ({ page }) => {
+    await page.goto('/history')
+    await expect(page.locator('.not-found')).toContainText(/404|不存在/, { timeout: 5000 })
+  })
+
+  test('导航栏「数据」链接进入数据页', async ({ page }) => {
+    await page.goto('/')
+    await page.click('nav >> text=数据')
+    await expect(page).toHaveURL(/\/data$/)
+    await expect(page.locator('.data-overview-card').first()).toBeVisible({ timeout: 8000 })
+  })
+
+  test('看板 API 500 → 显示错误提示（不白屏）', async ({ page }) => {
+    await page.route(/\/api\/boards\/executive$/, (route) =>
       route.fulfill({ status: 500, json: { detail: 'Server Error' } })
     )
     await page.goto('/executive')
 
     // 应该显示错误提示而非崩溃
     await expect(page.locator('.error-card')).toBeVisible({ timeout: 8000 })
-    await expect(page.locator('.error-card')).toContainText(/数据未就绪|错误|失败/)
+    await expect(page.locator('.error-card')).toContainText(/加载失败|错误|失败/)
   })
 })

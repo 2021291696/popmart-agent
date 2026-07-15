@@ -21,10 +21,11 @@ export default function AnalysisProgress() {
   const completed = isCompleteStatus(status)
   const failed = status === 'failed'
 
+  // 完成后按 recommended_page 跳回对应页面：
+  // "data" → 数据页；executive/supply/risk → 对应看板（读自己的缓存，不带 query 参数）
   useEffect(() => {
-    if (completed && job?.recommended_page && job?.query) {
-      const page = job.recommended_page
-      navigate(`/${page}?query=${encodeURIComponent(job.query)}`)
+    if (completed && job?.recommended_page) {
+      navigate(`/${job.recommended_page}`)
     }
   }, [completed, job, navigate])
 
@@ -76,7 +77,7 @@ export default function AnalysisProgress() {
             <h3>⚠️ 分析失败</h3>
             <p>{failMessage}</p>
             <p className="error-hint">
-              <Link to="/chat">返回对话页重试</Link>
+              <Link to="/">返回首页</Link>
             </p>
           </div>
         )}
@@ -86,7 +87,7 @@ export default function AnalysisProgress() {
             <h3>{error.kind === 'not_found' ? '⚠️ 任务不存在或已过期' : '⚠️ 连接异常'}</h3>
             <p>{error.message}</p>
             <p className="error-hint">
-              <Link to="/chat">返回对话页重试</Link>
+              <Link to="/">返回首页</Link>
             </p>
           </div>
         )}

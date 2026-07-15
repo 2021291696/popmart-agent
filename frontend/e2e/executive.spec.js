@@ -1,25 +1,22 @@
-// Executive 页面 e2e 测试
-import { test, expect } from './fixtures.js'
+// Executive 页面 e2e 测试（数据源：GET /api/boards/executive）
+import { test, expect, mockJob, MOCK_JOB_ID, BOARD_404_BODY } from './fixtures.js'
 
 test.describe('Executive 页面 - 多 Agent 协作全景', () => {
   test('页面加载后显示标题和关键指标', async ({ page }) => {
     await page.goto('/executive')
 
-    // 等待标题
-    await expect(page.locator('h1, h2').first()).toContainText('综合分析')
+    await expect(page.locator('h1').first()).toContainText('老板早会')
 
     // 验证关键指标卡片（4 个）
-    const metrics = page.locator('.metric-card, .metrics-grid > div')
-    await expect(metrics.first()).toBeVisible({ timeout: 5000 })
+    const metrics = page.locator('.metric-card')
+    await expect(metrics).toHaveCount(4, { timeout: 5000 })
   })
 
   test('显示 Agent 协作卡片（每个 agent 一个）', async ({ page }) => {
     await page.goto('/executive')
 
-    // 显式等待 agent 卡片渲染（不吞失败）
     await expect(page.locator('.agent-card')).toHaveCount(2, { timeout: 5000 })
 
-    // 检查至少有 2 个 agent 名称出现
     const content = await page.content()
     expect(content).toContain('ip_intelligence')
     expect(content).toContain('consumer_insights')
@@ -28,7 +25,6 @@ test.describe('Executive 页面 - 多 Agent 协作全景', () => {
   test('显示数据更新时间', async ({ page }) => {
     await page.goto('/executive')
 
-    // 等待看板渲染完成后校验 footer 元数据
     await expect(page.locator('.metric-card').first()).toBeVisible({ timeout: 5000 })
     const metaText = page.locator('footer.meta-text, .page-footer')
     await expect(metaText.first()).toContainText('2026-07-13', { timeout: 5000 })
@@ -41,5 +37,40 @@ test.describe('Executive 页面 - 多 Agent 协作全景', () => {
     const content = await page.content()
     expect(content).toContain('LABUBU')
     expect(content).toContain('复购率')
+  })
+
+  test('无缓存（404）→ 空态引导「点击刷新分析生成」', async ({ page }) => {
+    await page.route(/\/api\/boards\/executive$/, (route) =>
+      route.fulfill({ status: 404, json: BOARD_404_BODY })
+    )
+    await page.goto('/executive')
+
+    const empty = page.locator('.board-empty')
+    await expect(empty).toBeVisible({ timeout: 8000 })
+    await expect(empty).toContainText('该看板尚无分析结果')
+    await expect(empty.locator('.board-empty-btn')).toContainText('点击刷新分析生成')
+  })
+
+  test('点击「刷新分析」→ 创建 job 并跳转进度页', async ({ page }) => {
+    // job 保持 running：进度页不会因 complete 跳走，稳定停留在 /progress/{id}
+    await page.route(/\/api\/jobs\/[^/]+$/, (route) =>
+      route.fulfill({ json: mockJob({ status: 'running', recommended_page: null }), status: 200 })
+    )
+    await page.goto('/executive')
+    await expect(page.locator('.metric-card').first()).toBeVisible({ timeout: 5000 })
+
+    await page.click('.board-refresh-btn')
+    await expect(page).toHaveURL(new RegExp(`/progress/${MOCK_JOB_ID}`))
+  })
+
+  test('刷新冲突（409）→ 显示「该看板已有分析任务进行中」', async ({ page }) => {
+    await page.route(/\/api\/boards\/executive\/refresh$/, (route) =>
+      route.fulfill({ status: 409, json: { detail: '该看板已有分析任务进行中' } })
+    )
+    await page.goto('/executive')
+    await expect(page.locator('.metric-card').first()).toBeVisible({ timeout: 5000 })
+
+    await page.click('.board-refresh-btn')
+    await expect(page.locator('.board-toolbar-error')).toContainText('该看板已有分析任务进行中')
   })
 })

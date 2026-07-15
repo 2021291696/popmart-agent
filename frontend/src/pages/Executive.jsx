@@ -1,57 +1,54 @@
-import React, { useEffect, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import React, { useState } from 'react'
 import './Executive.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
-import DemoBanner from '../components/DemoBanner'
-import { fetchVisualizeWithFallback } from '../services/api'
+import { BoardEmptyState, BoardToolbar } from '../components/BoardChrome'
+import { useBoard } from '../hooks/useBoard'
 
 export default function Executive() {
-  const [searchParams] = useSearchParams()
-  const query = searchParams.get('query') || ''
-  const [data, setData] = useState(null)
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [isDemo, setIsDemo] = useState(false)
+  const { data, status, error, refresh } = useBoard('executive')
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState(null)
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    setData(null)
-    setIsDemo(false)
-    fetchVisualizeWithFallback('executive', query)
-      .then(({ source, data: viz }) => {
-        setData(viz)
-        setIsDemo(source === 'local')
-        setLoading(false)
-      })
-      .catch((err) => {
-        setError(err.message)
-        setLoading(false)
-      })
-  }, [query])
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    setRefreshError(null)
+    const msg = await refresh()
+    if (msg) setRefreshError(msg)
+    setRefreshing(false)
+  }
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <div className="executive-page loading-screen">
         <div className="loading-pulse"></div>
-        <p>正在加载综合分析...</p>
+        <p>正在加载老板早会看板...</p>
       </div>
     )
   }
 
-  if (error) {
+  if (status === 'empty') {
     return (
       <div className="executive-page">
-        <PageHeader title="泡泡玛特综合分析" description="多 Agent 协作全景" />
+        <PageHeader title="老板早会" description="多 Agent 协作全景" />
+        <div className="container">
+          <BoardEmptyState onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="executive-page">
+        <PageHeader title="老板早会" description="多 Agent 协作全景" />
         <div className="container">
           <div className="error-card">
-            <h3>⚠️ 数据未就绪</h3>
+            <h3>⚠️ 看板加载失败</h3>
             <p>{error}</p>
-            <p className="error-hint">
-              请先在<Link to="/chat">对话分析</Link>提交一个问题，系统会自动生成看板数据。
-            </p>
+            <p className="error-hint">可点击「刷新分析」重新生成，或稍后重试。</p>
           </div>
+          <BoardToolbar query="" onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
         </div>
       </div>
     )
@@ -61,13 +58,14 @@ export default function Executive() {
 
   return (
     <div className="executive-page">
-      {isDemo && <DemoBanner />}
       <PageHeader
         title={data.title}
         description={`多 Agent 协作全景 · ${data.total_agents ?? 0} 个专业 Agent · ${data.total_llm_calls ?? 0} 次 LLM 调用 · ${data.elapsed_seconds ?? 0}s`}
       />
 
       <div className="container">
+        <BoardToolbar query={data.query} onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
+
         {/* 关键指标 */}
         <section className="metrics-row">
           {[

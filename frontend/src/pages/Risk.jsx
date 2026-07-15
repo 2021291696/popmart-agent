@@ -1,58 +1,55 @@
-import React, { useEffect, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import React, { useState } from 'react'
 import './Risk.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
-import DemoBanner from '../components/DemoBanner'
-import { fetchVisualizeWithFallback } from '../services/api'
+import { BoardEmptyState, BoardToolbar } from '../components/BoardChrome'
+import { useBoard } from '../hooks/useBoard'
 import { plainSnippet } from '../utils/text'
 
 export default function Risk() {
-  const [searchParams] = useSearchParams()
-  const query = searchParams.get('query') || ''
-  const [data, setData] = useState(null)
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [isDemo, setIsDemo] = useState(false)
+  const { data, status, error, refresh } = useBoard('risk')
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState(null)
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    setData(null)
-    setIsDemo(false)
-    fetchVisualizeWithFallback('risk', query)
-      .then(({ source, data: viz }) => {
-        setData(viz)
-        setIsDemo(source === 'local')
-        setLoading(false)
-      })
-      .catch((err) => {
-        setError(err.message)
-        setLoading(false)
-      })
-  }, [query])
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    setRefreshError(null)
+    const msg = await refresh()
+    if (msg) setRefreshError(msg)
+    setRefreshing(false)
+  }
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <div className="risk-page loading-screen">
         <div className="loading-pulse"></div>
-        <p>正在加载风险分析...</p>
+        <p>正在加载客诉应对看板...</p>
       </div>
     )
   }
 
-  if (error) {
+  if (status === 'empty') {
     return (
       <div className="risk-page">
-        <PageHeader title="消费者风险分析" description="冲突检测与仲裁" />
+        <PageHeader title="客诉应对" description="冲突检测与仲裁" />
+        <div className="container">
+          <BoardEmptyState onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="risk-page">
+        <PageHeader title="客诉应对" description="冲突检测与仲裁" />
         <div className="container">
           <div className="error-card">
-            <h3>⚠️ 数据未就绪</h3>
+            <h3>⚠️ 看板加载失败</h3>
             <p>{error}</p>
-            <p className="error-hint">
-              请先在<Link to="/chat">对话分析</Link>提交一个问题，系统会自动生成看板数据。
-            </p>
+            <p className="error-hint">可点击「刷新分析」重新生成，或稍后重试。</p>
           </div>
+          <BoardToolbar query="" onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
         </div>
       </div>
     )
@@ -66,13 +63,14 @@ export default function Risk() {
 
   return (
     <div className="risk-page">
-      {isDemo && <DemoBanner />}
       <PageHeader
         title={data.title}
         description={`冲突检测与仲裁 · ${totalRounds} 轮 · ${data.has_conflict ? '检测到冲突' : '结论一致'}`}
       />
 
       <div className="container">
+        <BoardToolbar query={data.query} onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
+
         {/* 状态横幅 */}
         <section className="status-section">
           <div className={`status-card ${data.has_conflict ? 'conflict' : 'ok'} fade-in`}>

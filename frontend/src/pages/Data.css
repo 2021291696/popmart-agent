@@ -1,0 +1,191 @@
+/* 数据页：概览卡 + 数据源卡片（沿用全局设计变量） */
+
+.data-page {
+  padding-bottom: 4rem;
+}
+
+/* 与三看板页一致的区块标题 / 入场动画（各页 CSS 各自定义，非全局） */
+.section-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: var(--spacing-lg) 0 var(--spacing-md);
+  color: var(--color-text);
+}
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeInUp 400ms ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.data-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.data-toolbar-hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ====== 顶部概览卡 ====== */
+.data-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.data-overview-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.data-overview-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.data-overview-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-overview-unit {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 4px;
+}
+
+.data-overview-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ====== 数据源卡片 ====== */
+.data-sources-section {
+  margin-top: var(--spacing-lg);
+}
+
+.data-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.data-source-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  transition: border-color 150ms ease-out;
+}
+
+.data-source-card:hover {
+  border-color: var(--color-primary);
+}
+
+.data-source-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+  margin-bottom: 4px;
+}
+
+.data-source-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.data-source-url {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.data-source-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.data-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.data-badge.ok {
+  color: #2f855a;
+  background: rgba(47, 133, 90, 0.1);
+  border: 1px solid rgba(47, 133, 90, 0.25);
+}
+
+.data-badge.never {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+.data-badge.fail {
+  color: #c53030;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+}
+
+.data-badge.kind {
+  color: var(--color-primary);
+  background: rgba(60, 90, 120, 0.08);
+  border: 1px solid rgba(60, 90, 120, 0.2);
+}
+
+.data-source-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+.data-source-summary {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  border-top: 1px dashed var(--color-border);
+  padding-top: var(--spacing-xs);
+}
+
+@media (max-width: 640px) {
+  .data-sources-grid {
+    grid-template-columns: 1fr;
+  }
+}

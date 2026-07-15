@@ -233,6 +233,67 @@ button {
   overflow: auto;
 }
 
+/* ====== 三看板共享：页头工具条 + 空态（BoardChrome） ====== */
+.board-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding: 10px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.board-toolbar-meta {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.board-refresh-btn {
+  padding: 8px 20px;
+  flex-shrink: 0;
+}
+
+.board-toolbar-error {
+  flex-basis: 100%;
+  color: #c53030;
+  font-size: 13px;
+}
+
+.board-empty {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  margin-top: var(--spacing-md);
+}
+
+.board-empty-icon {
+  font-size: 40px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.board-empty h3 {
+  margin-bottom: var(--spacing-xs);
+}
+
+.board-empty p {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.board-empty-btn {
+  padding: 14px 40px;
+  font-size: 16px;
+}
+
 .not-found {
   padding: 120px 0;
   text-align: center;

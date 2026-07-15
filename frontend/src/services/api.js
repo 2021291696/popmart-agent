@@ -20,7 +20,12 @@ async function request(path, options = {}, timeoutMs = TIMEOUT_MS) {
       },
     })
     clearTimeout(timer)
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`)
+    if (!res.ok) {
+      // 错误对象统一携带 HTTP status，调用方按 err.status 区分 404/409 等场景
+      const err = new Error(`HTTP ${res.status}: ${await res.text()}`)
+      err.status = res.status
+      throw err
+    }
     return res.json()
   } catch (err) {
     clearTimeout(timer)
@@ -81,6 +86,146 @@ export function subscribeJobEvents(jobId, onEvent, onError) {
 export async function fetchVisualize(page, query) {
   const q = query ? `?query=${encodeURIComponent(query)}` : ''
   return request(`/api/visualize/${page}${q}`)
+}
+
+// ============================================================
+// 对话分析 API：纯 RAG 问答（与看板完全独立）
+// POST /api/chat 是同步接口，LLM 调用可能 10-30s，需要独立的长超时
+// ============================================================
+
+const CHAT_TIMEOUT_MS = 90000
+
+export async function postChat(message, sessionId) {
+  return request(
+    '/api/chat',
+    {
+      method: 'POST',
+      body: JSON.stringify({ message, session_id: sessionId || null }),
+    },
+    CHAT_TIMEOUT_MS,
+  )
+}
+
+export async function fetchChatSessions() {
+  return request('/api/chat/sessions')
+}
+
+export async function fetchChatSession(id) {
+  return request(`/api/chat/sessions/${id}`)
+}
+
+// ============================================================
+// 数据页 API：抓取/整理/向量化状态总览 + 一键刷新
+// ============================================================
+
+export async function fetchDataOverview() {
+  return request('/api/data/overview')
+}
+
+// 触发 抓取→整理→向量化 流水线；409 = 已有刷新进行中（err.status 区分）
+export async function refreshData() {
+  return request('/api/data/refresh', {
+    method: 'POST',
+    body: JSON.stringify({ include_scrape: true }),
+  })
+}
+
+// ============================================================
+// 三看板 API：各领域独立的多 Agent 编排缓存
+// fetchBoard 从未分析时后端返回 404（err.status === 404 → 页面显示空态）
+// ============================================================
+
+export async function fetchBoard(page) {
+  return request(`/api/boards/${page}`)
+}
+
+// 触发该看板重新分析；409 = 该看板已有分析任务进行中
+export async function refreshBoard(page) {
+  return request(`/api/boards/${page}/refresh`, { method: 'POST' })
+}
+
+// 工具统计值兼容两种形态：{calls: n} 或纯数字 n（与后端 _extract_viz_data 对齐）
+function toolStatCalls(stats) {
+  if (stats && typeof stats === 'object') return stats.calls ?? 0
+  return Number(stats) || 0
+}
+
+// 看板响应 → 旧 visualize 视图形状的适配器。
+// /api/boards/{page} 的 agents 是原始 sub_tasks（agent_name/result.steps/tool_stats），
+// 在此归一化成三个看板页既有的渲染结构，页面组件只需换数据源、不动展示逻辑。
+export function normalizeBoardData(page, board) {
+  if (!board || typeof board !== 'object') return board
+  const result = board.result ?? {}
+  const subTasks = Array.isArray(board.agents) ? board.agents : (result.sub_tasks ?? [])
+
+  const agents = subTasks.map((st) => {
+    const stResult = st?.result ?? {}
+    const steps = Array.isArray(stResult.steps) ? stResult.steps : []
+    return {
+      name: st?.agent_name ?? 'unknown',
+      query: st?.query ?? '',
+      final_answer: stResult.final_answer ?? '',
+      steps: steps.map((s) => ({
+        step: s?.step,
+        thought: s?.thought,
+        action: s?.action,
+        action_input: s?.action_input,
+        result: typeof s?.result === 'string' ? s.result.slice(0, 200) : '',
+      })),
+      tool_stats: stResult.tool_stats ?? {},
+      total_steps: steps.length,
+      llm_calls: stResult.llm_calls ?? 0,
+    }
+  })
+
+  const conflicts = board.conflicts ?? result.conflicts ?? []
+  const base = {
+    query: board.query ?? '',
+    title: board.title ?? '',
+    final_answer: board.final_answer ?? result.final_answer ?? '',
+    generated_at: board.generated_at ?? board.saved_at ?? '',
+  }
+
+  if (page === 'executive') {
+    return {
+      ...base,
+      agents: agents.map((a) => ({
+        name: a.name,
+        conclusion:
+          a.final_answer.length > 200 ? `${a.final_answer.slice(0, 200)}...` : a.final_answer,
+        steps: a.total_steps,
+        llm_calls: a.llm_calls,
+        sources_count: Object.values(a.tool_stats).reduce((sum, s) => sum + toolStatCalls(s), 0),
+      })),
+      total_agents: agents.length,
+      total_steps: agents.reduce((sum, a) => sum + a.total_steps, 0),
+      total_llm_calls: agents.reduce((sum, a) => sum + a.llm_calls, 0),
+      elapsed_seconds: result.elapsed_seconds ?? 0,
+    }
+  }
+  if (page === 'supply') {
+    const agent = agents[0] ?? null
+    return {
+      ...base,
+      agent,
+      tool_distribution: agent
+        ? Object.entries(agent.tool_stats).map(([name, stats]) => ({
+            name,
+            calls: toolStatCalls(stats),
+          }))
+        : [],
+    }
+  }
+  if (page === 'risk') {
+    return {
+      ...base,
+      agents,
+      conflicts,
+      total_rounds: board.total_rounds ?? result.total_rounds ?? 1,
+      has_conflict: conflicts.length > 0,
+    }
+  }
+  return base
 }
 
 // ============================================================

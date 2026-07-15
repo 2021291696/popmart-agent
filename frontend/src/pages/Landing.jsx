@@ -107,7 +107,7 @@ export default function Landing() {
               return (
                 <Link
                   key={s.id || s.page}
-                  to={`/${s.page}?query=${encodeURIComponent(s.query)}`}
+                  to={`/${s.page}`}
                   className="scenario-card"
                 >
                   <div className="scenario-icon">{meta.icon}</div>

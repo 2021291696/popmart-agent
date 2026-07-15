@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import React, { useState } from 'react'
 import './Supply.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
-import DemoBanner from '../components/DemoBanner'
-import { fetchVisualizeWithFallback } from '../services/api'
+import { BoardEmptyState, BoardToolbar } from '../components/BoardChrome'
+import { useBoard } from '../hooks/useBoard'
 
 function ToolBar({ name, count, max }) {
   const pct = max > 0 ? (count / max) * 100 : 0
@@ -22,51 +21,49 @@ function ToolBar({ name, count, max }) {
 }
 
 export default function Supply() {
-  const [searchParams] = useSearchParams()
-  const query = searchParams.get('query') || ''
-  const [data, setData] = useState(null)
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [isDemo, setIsDemo] = useState(false)
+  const { data, status, error, refresh } = useBoard('supply')
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState(null)
 
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    setData(null)
-    setIsDemo(false)
-    fetchVisualizeWithFallback('supply', query)
-      .then(({ source, data: viz }) => {
-        setData(viz)
-        setIsDemo(source === 'local')
-        setLoading(false)
-      })
-      .catch((err) => {
-        setError(err.message)
-        setLoading(false)
-      })
-  }, [query])
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    setRefreshError(null)
+    const msg = await refresh()
+    if (msg) setRefreshError(msg)
+    setRefreshing(false)
+  }
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <div className="supply-page loading-screen">
         <div className="loading-pulse"></div>
-        <p>正在加载 IP 深度分析...</p>
+        <p>正在加载备货分析看板...</p>
       </div>
     )
   }
 
-  if (error) {
+  if (status === 'empty') {
     return (
       <div className="supply-page">
-        <PageHeader title="LABUBU IP 深度分析" description="Agent ReAct 推理过程" />
+        <PageHeader title="备货分析" description="Agent ReAct 推理过程" />
+        <div className="container">
+          <BoardEmptyState onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="supply-page">
+        <PageHeader title="备货分析" description="Agent ReAct 推理过程" />
         <div className="container">
           <div className="error-card">
-            <h3>⚠️ 数据未就绪</h3>
+            <h3>⚠️ 看板加载失败</h3>
             <p>{error}</p>
-            <p className="error-hint">
-              请先在<Link to="/chat">对话分析</Link>提交一个问题，系统会自动生成看板数据。
-            </p>
+            <p className="error-hint">可点击「刷新分析」重新生成，或稍后重试。</p>
           </div>
+          <BoardToolbar query="" onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
         </div>
       </div>
     )
@@ -80,13 +77,14 @@ export default function Supply() {
 
   return (
     <div className="supply-page">
-      {isDemo && <DemoBanner />}
       <PageHeader
         title={data.title}
         description={agent ? `${agent.name} · ${agent.total_steps ?? 0} 步 ReAct 推理 · ${agent.llm_calls ?? 0} 次 LLM 调用` : 'ReAct 推理过程'}
       />
 
       <div className="container">
+        <BoardToolbar query={data.query} onRefresh={handleRefresh} refreshing={refreshing} refreshError={refreshError} />
+
         {/* Agent 元信息 */}
         {agent && (
           <section className="agent-meta-row">
@@ -149,7 +147,7 @@ export default function Supply() {
           <section className="tools-section">
             <h2 className="section-title">🛠 工具调用统计</h2>
             <div className="tools-card">
-              {tools.map((t, idx) => (
+              {tools.map((t) => (
                 <ToolBar key={t.name} name={t.name} count={t.calls} max={maxCalls} />
               ))}
             </div>
