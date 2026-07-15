@@ -22,7 +22,7 @@ SOURCES: list[Source] = [
     Source(
         key="popmart_official_home",
         label="泡泡玛特官网首页",
-        url="https://www.popmart.com/cn",
+        url="https://www.popmart.com.cn/",
         kind="official",
         mode="stealthy",
     ),

@@ -2,111 +2,81 @@
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_summary",
-    "text": "泡泡玛特日本官网首页显示，网站当前页面不存在（404错误），并提供了导航链接至首页、新商品、IP系列、分类、活动、MEGA系列、关于我们等板块。页面包含用户账户入口、购物车（显示0件商品）、社区注册入口、客服支持（周一至周五10:00-19:00 JST，邮箱jp.service@popmart.com）、帮助中心、FAQ、政策链接（使用条款、隐私政策、配送政策、退换货政策、公司信息、积分规定）、配送和订单状态查询、店铺列表、关于泡泡玛特、投资者关系、新闻、全球大使、商店分类（盲盒、毛绒玩具、手办）等信息。版权归泡泡玛特所有。",
+    "text": "泡泡玛特成立于2010年，是中国领先的潮流文化娱乐公司，围绕全球艺术家挖掘、IP孵化运营、消费者触达、潮玩文化推广、关联产业投资整合五个领域，构建了覆盖潮流玩具全产业链的综合运营平台。公司签约Kenny、毕奇、龙家升等知名潮玩设计师，旗下IP与各界知名品牌联名合作。2025年上半年，泡泡玛特美洲市场增速超十倍，其LABUBU、SKULLPANDA、MOLLY、DIMOO等IP首次登陆美国梅西百货节日花车游行，成为百年来首个以原创潮玩IP形象登上花车的中国品牌。2024年10月27日，泡泡玛特在卡塔尔多哈哈马德国际机场开设中东地区首家门店，也是全球首家24小时营业的线下门店。公司还亮相进博会，参与上海国际光影节，并斩获多项知名机构奖项。",
     "chunk_type": "summary"
   },
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_fact_0",
-    "text": "泡泡玛特日本官网首页显示当前页面不存在（404错误）。",
+    "text": "泡泡玛特成立于2010年，是中国领先的潮流文化娱乐公司。",
     "chunk_type": "fact"
   },
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_fact_1",
-    "text": "页面提供导航链接至首页、新商品、IP系列、分类、活动、MEGA系列、关于我们等板块。",
+    "text": "泡泡玛特签约Kenny、毕奇、龙家升等知名潮玩设计师。",
     "chunk_type": "fact"
   },
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_fact_2",
-    "text": "页面包含用户账户入口和购物车（显示0件商品）。",
+    "text": "2025年上半年，泡泡玛特美洲市场增速超十倍。",
     "chunk_type": "fact"
   },
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_fact_3",
-    "text": "页面提供社区注册入口。",
+    "text": "泡泡玛特LABUBU、SKULLPANDA、MOLLY、DIMOO等IP首次登陆美国梅西百货节日花车游行，成为百年来首个以原创潮玩IP形象登上花车的中国品牌。",
     "chunk_type": "fact"
   },
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_fact_4",
-    "text": "客服支持时间为周一至周五10:00-19:00 JST，邮箱为jp.service@popmart.com。",
+    "text": "2024年10月27日，泡泡玛特在卡塔尔多哈哈马德国际机场开设中东地区首家门店，也是全球首家24小时营业的线下门店。",
     "chunk_type": "fact"
   },
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_fact_5",
-    "text": "页面包含帮助中心、FAQ、使用条款、隐私政策、配送政策、退换货政策、公司信息、积分规定等政策链接。",
+    "text": "泡泡玛特亮相进博会，参与上海国际光影节。",
     "chunk_type": "fact"
   },
   {
     "source": "summarized",
     "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
+    "url": "https://www.popmart.com.cn/",
     "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
+    "fetched_at": "2026-07-15 18:41:48",
     "global_id": "summarized_popmart_official_home_fact_6",
-    "text": "页面提供配送和订单状态查询功能。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
-    "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
-    "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
-    "global_id": "summarized_popmart_official_home_fact_7",
-    "text": "页面包含店铺列表、关于泡泡玛特、投资者关系、新闻、全球大使等信息。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
-    "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
-    "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
-    "global_id": "summarized_popmart_official_home_fact_8",
-    "text": "商店分类包括盲盒、毛绒玩具、手办。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
-    "section": "popmart_official_home",
-    "url": "https://www.popmart.com/cn",
-    "kind": "official",
-    "fetched_at": "2026-07-15 18:23:05",
-    "global_id": "summarized_popmart_official_home_fact_9",
-    "text": "页面版权归泡泡玛特所有。",
+    "text": "泡泡玛特斩获多项知名机构奖项。",
     "chunk_type": "fact"
   },
   {
@@ -114,9 +84,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_summary",
-    "text": "泡泡玛特国际集团有限公司成立于2010年，2020年上市，创始人王宁，全球客服总部位于河南新乡。公司是全球领先的中国潮流文化娱乐集团，首家在巴黎卢浮宫开店的中国潮玩品牌。核心IP包括LABUBU、MOLLY、DIMOO等。2024年营收130.4亿元，国内线下门店401家，机器人商店2300家，港澳台及海外门店130家。2025年全球员工超1万人，注册会员超1亿人，全品类全IP产品销量超4亿只，业务覆盖100多个国家地区，拥有6大供应链基地。2025年LABUBU全年销量超1亿只。2025年5月市值突破2300亿港元，超越开云集团。2025年6月股价最高达181港元/股。2025年11月捐赠1000万港元支援香港大埔火灾救援。2026年1月推出PUCKY敲敲系列毛绒挂件盲盒，引发市场热潮。公司持续拓展海外市场，在韩国、日本、美国、英国、法国、泰国、印尼、菲律宾、德国、卡塔尔等多国开设门店。2026年1月宣布伦敦为欧洲总部。2026年3月进军家电行业，推出LABUBU冷藏箱。2026年5月段永平增持成为第二大股东。",
+    "text": "泡泡玛特国际集团有限公司成立于2010年，2020年上市，创始人王宁，全球客服总部位于河南新乡。公司是全球领先的中国潮流文化娱乐集团，首家在巴黎卢浮宫开店的中国潮玩品牌。核心IP包括LABUBU、MOLLY、DIMOO等。2024年营收130.4亿元，国内线下门店401家，机器人商店2300家，港澳台及海外门店130家。2025年全球员工超1万人，注册会员超1亿人，全品类全IP产品销量超4亿只，业务覆盖100多个国家地区，拥有6大供应链基地。2025年5月市值突破2300亿港元，超越开云集团。2026年1月市值攀升至2764亿港元。LABUBU系列在全球爆火，2025年全年销量超1亿只。泡泡玛特持续拓展海外市场，在韩国、日本、美国、英国、泰国、印尼、菲律宾、德国、卡塔尔等多国开设门店，并在越南建立海外工厂。公司还涉足积木、珠宝、家电、甜品等新业务，推出动画剧集和电影计划。",
     "chunk_type": "summary"
   },
   {
@@ -124,7 +94,7 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_0",
     "text": "泡泡玛特成立于2010年，2020年上市，创始人王宁。",
     "chunk_type": "fact"
@@ -134,9 +104,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_1",
-    "text": "2024年营收130.4亿元。",
+    "text": "2024年泡泡玛特营收130.4亿元。",
     "chunk_type": "fact"
   },
   {
@@ -144,9 +114,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_2",
-    "text": "截至2024年，国内线下门店401家，机器人商店2300家，港澳台及海外门店130家。",
+    "text": "截至2024年，泡泡玛特国内线下门店401家、机器人商店2300家、港澳台及海外门店130家。",
     "chunk_type": "fact"
   },
   {
@@ -154,9 +124,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_3",
-    "text": "2025年全球员工超1万人，注册会员超1亿人，全品类全IP产品销量超4亿只。",
+    "text": "2025年泡泡玛特全球员工超1万人、注册会员超1亿人、全品类全IP产品销量超4亿只。",
     "chunk_type": "fact"
   },
   {
@@ -164,9 +134,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_4",
-    "text": "2025年LABUBU全年销量超1亿只。",
+    "text": "2025年5月泡泡玛特市值突破2300亿港元，超越开云集团。",
     "chunk_type": "fact"
   },
   {
@@ -174,9 +144,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_5",
-    "text": "2025年5月市值突破2300亿港元，超越开云集团。",
+    "text": "2026年1月泡泡玛特市值攀升至2764亿港元。",
     "chunk_type": "fact"
   },
   {
@@ -184,9 +154,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_6",
-    "text": "2025年6月股价盘中最高达181港元/股。",
+    "text": "LABUBU在2025年全年销量超1亿只。",
     "chunk_type": "fact"
   },
   {
@@ -194,9 +164,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_7",
-    "text": "2025年11月捐赠1000万港元支援香港大埔火灾救援。",
+    "text": "泡泡玛特首家在巴黎卢浮宫开店的中国潮玩品牌。",
     "chunk_type": "fact"
   },
   {
@@ -204,9 +174,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_8",
-    "text": "2026年1月推出PUCKY敲敲系列毛绒挂件盲盒。",
+    "text": "泡泡玛特在越南完成海外工厂第一批产品生产。",
     "chunk_type": "fact"
   },
   {
@@ -214,9 +184,9 @@
     "section": "popmart_wiki_baidu",
     "url": "https://baike.baidu.com/item/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:07",
+    "fetched_at": "2026-07-15 18:41:49",
     "global_id": "summarized_popmart_wiki_baidu_fact_9",
-    "text": "2026年5月段永平增持成为第二大股东。",
+    "text": "泡泡玛特2025年LABUBU新系列隐藏款在二手市场一度卖出20倍溢价。",
     "chunk_type": "fact"
   },
   {
@@ -224,9 +194,9 @@
     "section": "popmart_finance_sina",
     "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
     "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
+    "fetched_at": "2026-07-15 18:41:50",
     "global_id": "summarized_popmart_finance_sina_summary",
-    "text": "该网页是新浪财经的行情中心首页，提供了沪深、港股、美股、基金、外汇、商品等市场的实时或延迟行情数据。页面包含市场概况、自选股管理、板块排名（如沪A、深A、港股正股等）、基金排名等功能模块，并显示各指数（如上证、深成、恒生、道琼斯等）的读取状态。行情数据延迟15分钟，用户可通过点击列标题排序，并设有客户服务热线（4001102288）和常见问题解答等链接。",
+    "text": "该网页为新浪财经的行情页面，包含股票、基金、港股、美股、期货、外汇、贵金属、债券、期指、理财等市场板块的实时行情数据。页面提供沪深、港股、美股等市场的指数数据，如上证、深成、恒生、道琼斯、纳斯达克、标普500等，以及人民币、欧元、美元指数、黄金、原油等汇率和商品价格。用户可管理自选股，查看最新价、涨跌幅、成交量等指标，行情延迟15分钟。页面还包含基金排行、港股排行、A+H股、窝轮、ADR等分类，以及客户服务热线和常见问题解答。",
     "chunk_type": "summary"
   },
   {
@@ -234,9 +204,9 @@
     "section": "popmart_finance_sina",
     "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
     "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
+    "fetched_at": "2026-07-15 18:41:50",
     "global_id": "summarized_popmart_finance_sina_fact_0",
-    "text": "- 该网页是新浪财经行情中心首页，覆盖沪深、港股、美股、基金、外汇、商品等市场。",
+    "text": "- 页面提供沪深、港股、美股等市场的指数数据，包括上证、深成、恒生、道琼斯、纳斯达克、标普500等。",
     "chunk_type": "fact"
   },
   {
@@ -244,9 +214,9 @@
     "section": "popmart_finance_sina",
     "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
     "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
+    "fetched_at": "2026-07-15 18:41:50",
     "global_id": "summarized_popmart_finance_sina_fact_1",
-    "text": "- 页面提供市场概况，包括上证、深成、恒生、道琼斯等指数的读取状态。",
+    "text": "- 行情数据包括人民币、欧元、美元指数、黄金、原油等汇率和商品价格。",
     "chunk_type": "fact"
   },
   {
@@ -254,9 +224,9 @@
     "section": "popmart_finance_sina",
     "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
     "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
+    "fetched_at": "2026-07-15 18:41:50",
     "global_id": "summarized_popmart_finance_sina_fact_2",
-    "text": "- 行情数据延迟15分钟。",
+    "text": "- 用户可查看最新价、涨跌幅、成交量等指标。",
     "chunk_type": "fact"
   },
   {
@@ -264,9 +234,9 @@
     "section": "popmart_finance_sina",
     "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
     "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
+    "fetched_at": "2026-07-15 18:41:50",
     "global_id": "summarized_popmart_finance_sina_fact_3",
-    "text": "- 用户可通过点击列标题对行情数据进行排序。",
+    "text": "- 行情延迟15分钟。",
     "chunk_type": "fact"
   },
   {
@@ -274,39 +244,29 @@
     "section": "popmart_finance_sina",
     "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
     "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
+    "fetched_at": "2026-07-15 18:41:50",
     "global_id": "summarized_popmart_finance_sina_fact_4",
+    "text": "- 页面包含基金排行、港股排行、A+H股、窝轮、ADR等分类。",
+    "chunk_type": "fact"
+  },
+  {
+    "source": "summarized",
+    "section": "popmart_finance_sina",
+    "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
+    "kind": "financial",
+    "fetched_at": "2026-07-15 18:41:50",
+    "global_id": "summarized_popmart_finance_sina_fact_5",
     "text": "- 客户服务热线为4001102288。",
     "chunk_type": "fact"
   },
   {
     "source": "summarized",
-    "section": "popmart_finance_sina",
-    "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
-    "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
-    "global_id": "summarized_popmart_finance_sina_fact_5",
-    "text": "- 页面包含自选股管理、板块排名和基金排名等功能模块。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
-    "section": "popmart_finance_sina",
-    "url": "https://vip.stock.finance.sina.com.cn/mkt/#hkstock_a_9992",
-    "kind": "financial",
-    "fetched_at": "2026-07-15 18:23:08",
-    "global_id": "summarized_popmart_finance_sina_fact_6",
-    "text": "- 原文未提及任何具体的财务数据、IP名、人物或关键事件。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_summary",
-    "text": "36氪搜索结果显示，泡泡玛特近期在多个领域展开跨界布局，包括开设全国首家甜品店、推出粽子产品、进军家电领域（LABUBU冰箱后亲自造家电），并涉足游戏业务但遭遇挫折（《梦想家园》停服，两年亏损1.2亿元）。公司股价表现强劲，段永平重仓举牌成为第二大股东，持股比例升至6.04%，并盛赞创始人王宁。同时，泡泡玛特面临LABUBU被模仿的侵权问题，需加强IP保护。行业趋势方面，2026上半年潮玩市场出现分化，泡泡玛特“踩刹车”而新势力蓄力，BJD品类迎来爆发，销量仅次于泡泡玛特。",
+    "text": "36氪搜索结果显示，泡泡玛特近期在多个领域展开跨界布局，包括开设全国首家甜品店、进入甜品赛道、推出粽子产品，并计划亲自造家电。其自研游戏《梦想家园》于2026年6月停服，两年累计亏损1.2亿元，折射出跨界做游戏的困境。LABUBU冰箱贴遇冷后，公司砸重金招人进军家电领域。段永平重仓举牌泡泡玛特，持股比例升至6.04%，成为第二大股东，并盛赞创始人王宁。公司股价在2026年5月29日报收176港元，涨幅达8.98%。LABUBU被模仿，泡泡玛特强调必须打假以维护IP。2026上半年潮玩市场显示泡泡玛特“踩刹车”，新势力蓄力。此外，BJD品类销量仅次于泡泡玛特，迎来爆发。",
     "chunk_type": "summary"
   },
   {
@@ -314,9 +274,9 @@
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_fact_0",
-    "text": "泡泡玛特自研游戏《梦想家园》停运，两年亏损1.2亿元。",
+    "text": "泡泡玛特自研游戏《梦想家园》于2026年6月停服，两年累计亏损1.2亿元。",
     "chunk_type": "fact"
   },
   {
@@ -324,9 +284,9 @@
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_fact_1",
-    "text": "段永平在泡泡玛特持股比例升至6.04%，成为第二大股东。",
+    "text": "段永平在泡泡玛特的持股比例升至6.04%，成为第二大股东。",
     "chunk_type": "fact"
   },
   {
@@ -334,8 +294,18 @@
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_fact_2",
+    "text": "泡泡玛特股价在2026年5月29日报收176港元，涨幅达8.98%。",
+    "chunk_type": "fact"
+  },
+  {
+    "source": "summarized",
+    "section": "popmart_36kr_search",
+    "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
+    "kind": "news",
+    "fetched_at": "2026-07-15 18:41:59",
+    "global_id": "summarized_popmart_36kr_search_fact_3",
     "text": "泡泡玛特全国首家甜品店于2026年6月26日在秦皇岛开业。",
     "chunk_type": "fact"
   },
@@ -344,19 +314,9 @@
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
-    "global_id": "summarized_popmart_36kr_search_fact_3",
-    "text": "LABUBU冰箱遇冷后，泡泡玛特要亲自造家电了。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
-    "section": "popmart_36kr_search",
-    "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
-    "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_fact_4",
-    "text": "2026上半年潮玩市场，泡泡玛特“踩刹车”、新势力蓄力。",
+    "text": "LABUBU冰箱贴遇冷后，泡泡玛特计划亲自造家电。",
     "chunk_type": "fact"
   },
   {
@@ -364,9 +324,9 @@
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_fact_5",
-    "text": "BJD销量仅次于泡泡玛特，迎来爆发。",
+    "text": "2026上半年潮玩市场显示泡泡玛特“踩刹车”，新势力蓄力。",
     "chunk_type": "fact"
   },
   {
@@ -374,9 +334,9 @@
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_fact_6",
-    "text": "泡泡玛特卖粽子，奇梦岛造航线，潮玩新增量靠跨界。",
+    "text": "BJD品类销量仅次于泡泡玛特，迎来爆发。",
     "chunk_type": "fact"
   },
   {
@@ -384,29 +344,9 @@
     "section": "popmart_36kr_search",
     "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
     "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
+    "fetched_at": "2026-07-15 18:41:59",
     "global_id": "summarized_popmart_36kr_search_fact_7",
-    "text": "LABUBU被模仿，泡泡玛特必须打侵权官司。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
-    "section": "popmart_36kr_search",
-    "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
-    "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
-    "global_id": "summarized_popmart_36kr_search_fact_8",
-    "text": "段永平重仓举牌泡泡玛特，盛赞创始人王宁与乔布斯同级别。",
-    "chunk_type": "fact"
-  },
-  {
-    "source": "summarized",
-    "section": "popmart_36kr_search",
-    "url": "https://www.36kr.com/search/articles/%E6%B3%A1%E6%B3%A1%E7%8E%9B%E7%89%B9",
-    "kind": "news",
-    "fetched_at": "2026-07-15 18:23:16",
-    "global_id": "summarized_popmart_36kr_search_fact_9",
-    "text": "泡泡玛特股价大涨，截至5月29日报收176港元，涨幅8.98%。",
+    "text": "LABUBU被模仿，泡泡玛特强调必须打假以维护IP。",
     "chunk_type": "fact"
   }
 ]
