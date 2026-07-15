@@ -77,6 +77,25 @@ def _build_agent_registry(settings: Settings):
     return build_agents(settings)
 
 
+def _load_cached_result(query: str) -> dict | None:
+    """读取 .demo_cache.json 中该 query 的已缓存分析结果。
+
+    命中时 create_job 直接短路（演示场景重复提问不再烧 30-140s 的 LLM 分析）。
+    """
+    if not CACHE_FILE.exists():
+        return None
+    try:
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+    entries = data.get("entries", {}) if isinstance(data, dict) else {}
+    entry = entries.get(query)
+    if isinstance(entry, dict) and isinstance(entry.get("result"), dict):
+        return entry["result"]
+    return None
+
+
 def _orchestration_result_to_dict(result) -> dict:
     """把 OrchestrationResult（含 SubTask 对象）序列化为纯 dict（JSON 安全）。
 
@@ -193,10 +212,21 @@ def _save_result_to_cache(query: str, result: dict, *, path: Path | None = None)
 
 @router.post("")
 async def create_job(req: AnalyzeRequest, request: Request):
-    """创建分析任务，立即返回 job_id，后台运行分析。"""
+    """创建分析任务，立即返回 job_id，后台运行分析。
+
+    命中缓存的 query 直接短路完成（演示场景重复提问不再重跑 30-140s 分析）。
+    """
     check_auth(request)
     query = _safe_normalize(req.query)
     job = job_manager.create_job(query)
+    cached = _load_cached_result(query)
+    if cached is not None:
+        job_manager.update_job(
+            job.id,
+            event=JobEvent(stage="cache_hit", message="命中已有分析缓存，直接返回结果", payload={}),
+        )
+        job_manager.complete_job(job.id, cached, _keyword_fallback(query))
+        return {"job_id": job.id, "status": job.status.value, "query": query, "cache_hit": True}
     task = asyncio.create_task(_run_analysis_job(job.id, query))
     _tasks.add(task)
     task.add_done_callback(lambda t, jid=job.id: _on_task_done(jid, t))

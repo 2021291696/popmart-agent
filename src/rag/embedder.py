@@ -2,12 +2,41 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 import httpx
 
 from src.security import redact_secrets, validate_endpoint
+
+def _maybe_force_hf_offline() -> None:
+    """本项目用到的本地 embedding 模型已缓存时，强制 HuggingFace 离线模式。
+
+    必须在 huggingface_hub 被任何代码 import 之前执行——
+    HF_HUB_OFFLINE 常量在 import 时冻结，import 之后再设环境变量无效
+    （否则离线环境下每次构造 SentenceTransformer 都会触发
+    huggingface.co HEAD 探测 + 5 次指数退避重试，单个文件约 23s，
+    整个 RAG 首次调用可卡 5 分钟以上，曾实测卡死分析任务）。
+    """
+    if os.environ.get("HF_HUB_OFFLINE"):
+        return  # 尊重显式设置
+    cache = Path.home() / ".cache" / "huggingface" / "hub"
+    project_models = (
+        "models--BAAI--bge-large-zh-v1.5",
+        "models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2",
+    )
+    try:
+        cached = any((cache / m).is_dir() for m in project_models)
+    except OSError:
+        cached = False
+    if cached:
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
+
+_maybe_force_hf_offline()
+
 
 if TYPE_CHECKING:
     from src.config import Settings
