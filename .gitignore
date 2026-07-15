@@ -27,6 +27,8 @@ strix_runs/
 # Demo 跨 session 缓存（面试前预热生成，不入库）
 .demo_cache.pkl
 .demo_cache.json
+.board_cache.json
+chat_sessions.json
 
 # IDE / 工具配置
 .idea/

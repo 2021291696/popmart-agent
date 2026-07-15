@@ -36,6 +36,9 @@ from src.api_jobs import (
 _check_auth = check_auth  # 兼容旧引用
 from src.config import load_settings
 from src.orchestrator import Orchestrator
+from src.api_boards import router as boards_router
+from src.api_chat import router as chat_router
+from src.api_data import router as data_router
 
 log = logging.getLogger("api")
 
@@ -67,6 +70,10 @@ app.add_middleware(
 
 # 挂载 Job/SSE 端点（/api/jobs*）
 app.include_router(jobs_router)
+# 数据中心化架构：对话分析（RAG 问答+会话）、数据页（状态+一键刷新）、三看板（独立编排）
+app.include_router(chat_router)
+app.include_router(data_router)
+app.include_router(boards_router)
 
 
 def _save_result_to_cache(query: str, result: dict) -> bool:
