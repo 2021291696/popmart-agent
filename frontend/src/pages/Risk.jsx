@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
 import DemoBanner from '../components/DemoBanner'
 import { fetchVisualizeWithFallback } from '../services/api'
+import { plainSnippet } from '../utils/text'
 
 export default function Risk() {
   const [searchParams] = useSearchParams()
@@ -103,12 +104,12 @@ export default function Risk() {
                   <div className="conflict-vs-row">
                     <div className="conflict-side">
                       <div className="conflict-agent-name">{c.agent_a}</div>
-                      <div className="conflict-claim">{c.claim_a || agentA?.final_answer?.slice(0, 120) || '—'}</div>
+                      <div className="conflict-claim">{plainSnippet(c.claim_a || agentA?.final_answer) || '—'}</div>
                     </div>
                     <div className="conflict-vs">VS</div>
                     <div className="conflict-side">
                       <div className="conflict-agent-name">{c.agent_b}</div>
-                      <div className="conflict-claim">{c.claim_b || agentB?.final_answer?.slice(0, 120) || '—'}</div>
+                      <div className="conflict-claim">{plainSnippet(c.claim_b || agentB?.final_answer) || '—'}</div>
                     </div>
                   </div>
                   {c.reason && (
@@ -135,7 +136,7 @@ export default function Risk() {
                 {agents.map((a) => (
                   <div key={a.name} className="round-agent">
                     <span className="round-agent-name">{a.name}</span>
-                    <span className="round-agent-claim">{a.final_answer?.slice(0, 120) || '—'}</span>
+                    <span className="round-agent-claim">{plainSnippet(a.final_answer) || '—'}</span>
                   </div>
                 ))}
               </div>

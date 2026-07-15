@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import './History.css'
 import PageHeader from '../components/PageHeader'
 import { fetchHistory } from '../services/api'
+import { stripMarkdown } from '../utils/text'
 
 const PAGE_LABELS = {
   executive: '老板早会',
@@ -12,13 +13,6 @@ const PAGE_LABELS = {
 
 // 后端 snippet 取自 markdown 报告前 120 字，列表渲染前先剥离 markdown 标记
 const SNIPPET_MAX_LEN = 120
-
-function stripMarkdown(text) {
-  return (text || '')
-    .replace(/[#>*`_~[\]]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
 
 export default function History() {
   const [items, setItems] = useState([])
