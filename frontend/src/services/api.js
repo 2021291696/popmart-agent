@@ -184,6 +184,8 @@ export function normalizeBoardData(page, board) {
     title: board.title ?? '',
     final_answer: board.final_answer ?? result.final_answer ?? '',
     generated_at: board.generated_at ?? board.saved_at ?? '',
+    // 后端预提取的图表数据（agent_activity / ip_mentions / sentiment），无则为 null
+    charts: board.charts ?? null,
   }
 
   if (page === 'executive') {

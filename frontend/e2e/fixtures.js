@@ -47,6 +47,34 @@ const EXEC_SUB_TASKS = [
   },
 ]
 
+// ---- 看板 charts mock：后端 _extract_charts 预提取形态 ----
+// agent_activity / ip_mentions（含诚实标注 note）/ sentiment{distribution, items}
+const MOCK_CHARTS_EXECUTIVE = {
+  agent_activity: [
+    { name: 'ip_intelligence', steps: 4, llm_calls: 4, data_calls: 3 },
+    { name: 'consumer_insights', steps: 3, llm_calls: 3, data_calls: 2 },
+  ],
+  ip_mentions: {
+    time_range: '30d',
+    note: '基于抓取语料的提及量,非真实时序指数。生产环境需接微博指数 API。',
+    items: [
+      { ip: 'LABUBU', mentions: 64, share_pct: 40.5 },
+      { ip: 'MOLLY', mentions: 45, share_pct: 28.5 },
+    ],
+  },
+  sentiment: {
+    distribution: [
+      { name: '正面', value: 1 },
+      { name: '负面', value: 0 },
+      { name: '中性', value: 8 },
+    ],
+    items: [
+      { label: 'LABUBU 太可爱了', sentiment: '正面', intensity: 4, emotion: '喜悦' },
+      { label: '抽盒体验一般', sentiment: '中性', intensity: 2, emotion: '' },
+    ],
+  },
+}
+
 export const MOCK_BOARD_EXECUTIVE = {
   page: 'executive',
   title: '老板早会',
@@ -58,6 +86,7 @@ export const MOCK_BOARD_EXECUTIVE = {
   result: { elapsed_seconds: 45.3, sub_tasks: EXEC_SUB_TASKS, conflicts: [] },
   agents: EXEC_SUB_TASKS,
   conflicts: [],
+  charts: MOCK_CHARTS_EXECUTIVE,
 }
 
 const SUPPLY_SUB_TASKS = [
@@ -90,6 +119,7 @@ export const MOCK_BOARD_SUPPLY = {
   result: { sub_tasks: SUPPLY_SUB_TASKS, conflicts: [] },
   agents: SUPPLY_SUB_TASKS,
   conflicts: [],
+  charts: MOCK_CHARTS_EXECUTIVE, // 复用同形数据：supply 图区只渲染 ip_mentions + sentiment 三张卡
 }
 
 const RISK_SUB_TASKS = [
@@ -133,6 +163,27 @@ export const MOCK_RISK_CONFLICT = {
   reason: '不同维度：质量投诉 vs 渠道假货',
 }
 
+// risk 客诉场景典型分布：负面为主、无 trend_compare（ip_mentions 为 null）
+const MOCK_CHARTS_RISK = {
+  agent_activity: [
+    { name: 'consumer_insights', steps: 4, llm_calls: 4, data_calls: 3 },
+    { name: 'anti_counterfeit', steps: 4, llm_calls: 4, data_calls: 3 },
+  ],
+  ip_mentions: null,
+  sentiment: {
+    distribution: [
+      { name: '正面', value: 0 },
+      { name: '负面', value: 7 },
+      { name: '中性', value: 1 },
+    ],
+    items: [
+      { label: '玩偶掉漆严重', sentiment: '负面', intensity: 5, emotion: '愤怒' },
+      { label: '客服处理慢', sentiment: '负面', intensity: 4, emotion: '不满' },
+      { label: '包装有破损', sentiment: '中性', intensity: 2, emotion: '' },
+    ],
+  },
+}
+
 export const MOCK_BOARD_RISK = {
   page: 'risk',
   title: '客诉应对',
@@ -144,6 +195,7 @@ export const MOCK_BOARD_RISK = {
   result: { sub_tasks: RISK_SUB_TASKS, conflicts: [MOCK_RISK_CONFLICT], total_rounds: 2 },
   agents: RISK_SUB_TASKS,
   conflicts: [MOCK_RISK_CONFLICT],
+  charts: MOCK_CHARTS_RISK,
 }
 
 export const MOCK_BOARD_RISK_NO_CONFLICT = {

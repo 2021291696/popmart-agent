@@ -3,6 +3,7 @@ import './Supply.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
 import { BoardEmptyState, BoardToolbar } from '../components/BoardChrome'
+import { IpMentionsChart, SentimentDonut, SentimentIntensityChart } from '../components/BoardCharts'
 import { useBoard } from '../hooks/useBoard'
 
 function ToolBar({ name, count, max }) {
@@ -99,6 +100,18 @@ export default function Supply() {
                 <div className="agent-meta-value">{m.value}</div>
               </div>
             ))}
+          </section>
+        )}
+
+        {/* 热度与情感图表（后端预提取的 charts，缺失的图自动跳过） */}
+        {data.charts && (data.charts.ip_mentions || data.charts.sentiment) && (
+          <section className="charts-section">
+            <h2 className="section-title">📊 热度与情感速览</h2>
+            <div className="charts-grid">
+              <IpMentionsChart data={data.charts.ip_mentions} />
+              <SentimentDonut sentiment={data.charts.sentiment} />
+              <SentimentIntensityChart sentiment={data.charts.sentiment} />
+            </div>
           </section>
         )}
 

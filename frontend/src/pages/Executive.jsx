@@ -3,6 +3,7 @@ import './Executive.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
 import { BoardEmptyState, BoardToolbar } from '../components/BoardChrome'
+import { AgentActivityChart, IpMentionsChart, SentimentDonut, SentimentIntensityChart } from '../components/BoardCharts'
 import { useBoard } from '../hooks/useBoard'
 
 export default function Executive() {
@@ -83,6 +84,19 @@ export default function Executive() {
             </div>
           ))}
         </section>
+
+        {/* 数据速览图表（后端预提取的 charts，缺失的图自动跳过；全空时整节不渲染） */}
+        {data.charts && (data.charts.agent_activity?.length > 0 || data.charts.ip_mentions || data.charts.sentiment) && (
+          <section className="charts-section">
+            <h2 className="section-title">📈 数据速览</h2>
+            <div className="charts-grid">
+              <AgentActivityChart data={data.charts.agent_activity} />
+              <IpMentionsChart data={data.charts.ip_mentions} />
+              <SentimentDonut sentiment={data.charts.sentiment} />
+              <SentimentIntensityChart sentiment={data.charts.sentiment} />
+            </div>
+          </section>
+        )}
 
         {/* Agent 贡献 */}
         <section className="agent-section">

@@ -1,0 +1,58 @@
+/* 看板图表卡片：与 metric-card / report-card 同一套表面语言 */
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+.chart-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.chart-card-title {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.chart-card-subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.chart-card-body {
+  width: 100%;
+}
+
+/* trend_compare 诚实标注：语料提及量 ≠ 真实时序指数，琥珀醒目小字 */
+.chart-note {
+  margin: var(--spacing-sm) 0 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a6d1a;
+  background: #fdf6e3;
+  border: 1px solid #ecd27a;
+  border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}

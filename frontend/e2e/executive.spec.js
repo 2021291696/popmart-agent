@@ -1,5 +1,5 @@
 // Executive 页面 e2e 测试（数据源：GET /api/boards/executive）
-import { test, expect, mockJob, MOCK_JOB_ID, BOARD_404_BODY } from './fixtures.js'
+import { test, expect, mockJob, MOCK_JOB_ID, MOCK_BOARD_EXECUTIVE, BOARD_404_BODY } from './fixtures.js'
 
 test.describe('Executive 页面 - 多 Agent 协作全景', () => {
   test('页面加载后显示标题和关键指标', async ({ page }) => {
@@ -72,5 +72,37 @@ test.describe('Executive 页面 - 多 Agent 协作全景', () => {
 
     await page.click('.board-refresh-btn')
     await expect(page.locator('.board-toolbar-error')).toContainText('该看板已有分析任务进行中')
+  })
+
+  test('有 charts → 数据速览图表渲染（含诚实标注 note）', async ({ page }) => {
+    await page.goto('/executive')
+
+    await expect(page.locator('.charts-section')).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.chart-card')).toHaveCount(4)
+    // recharts 真图表容器 + 四张卡标题
+    await expect(page.locator('.recharts-responsive-container')).toHaveCount(4)
+    const content = await page.content()
+    expect(content).toContain('Agent 工作量对比')
+    expect(content).toContain('IP 热度提及量')
+    expect(content).toContain('情感倾向分布')
+    expect(content).toContain('逐条情感强度')
+    // 诚实标注 note 原文展示
+    expect(content).toContain('非真实时序指数')
+  })
+
+  test('无 charts → 图表区整块不存在（含标题）', async ({ page }) => {
+    await page.route(/\/api\/boards\/executive$/, (route) =>
+      route.fulfill({
+        json: { ...MOCK_BOARD_EXECUTIVE, charts: { agent_activity: [], ip_mentions: null, sentiment: null } },
+        status: 200,
+      })
+    )
+    await page.goto('/executive')
+
+    await expect(page.locator('.metric-card').first()).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('.charts-section')).toHaveCount(0)
+    await expect(page.locator('.chart-card')).toHaveCount(0)
+    // 原有区块不受影响
+    await expect(page.locator('.agent-card')).toHaveCount(2)
   })
 })

@@ -3,6 +3,7 @@ import './Risk.css'
 import PageHeader from '../components/PageHeader'
 import MarkdownView from '../components/MarkdownView'
 import { BoardEmptyState, BoardToolbar } from '../components/BoardChrome'
+import { SentimentDonut, SentimentIntensityChart } from '../components/BoardCharts'
 import { useBoard } from '../hooks/useBoard'
 import { plainSnippet } from '../utils/text'
 
@@ -89,6 +90,17 @@ export default function Risk() {
             </div>
           </div>
         </section>
+
+        {/* 客诉情感画像（后端预提取的 charts.sentiment，无数据时整节跳过） */}
+        {data.charts?.sentiment && (
+          <section className="charts-section">
+            <h2 className="section-title">💢 客诉情感画像</h2>
+            <div className="charts-grid">
+              <SentimentDonut sentiment={data.charts.sentiment} />
+              <SentimentIntensityChart sentiment={data.charts.sentiment} />
+            </div>
+          </section>
+        )}
 
         {/* 冲突对比 */}
         {data.has_conflict && conflicts.length > 0 && (

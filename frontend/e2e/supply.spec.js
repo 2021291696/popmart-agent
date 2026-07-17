@@ -1,5 +1,5 @@
 // Supply 页面 e2e 测试 - ReAct 推理时间线（数据源：GET /api/boards/supply）
-import { test, expect, BOARD_404_BODY } from './fixtures.js'
+import { test, expect, MOCK_BOARD_SUPPLY, BOARD_404_BODY } from './fixtures.js'
 
 test.describe('Supply 页面 - ReAct 推理时间线', () => {
   test('页面加载显示标题', async ({ page }) => {
@@ -54,5 +54,35 @@ test.describe('Supply 页面 - ReAct 推理时间线', () => {
     await expect(empty).toBeVisible({ timeout: 8000 })
     await expect(empty).toContainText('该看板尚无分析结果')
     await expect(empty.locator('.board-empty-btn')).toContainText('点击刷新分析生成')
+  })
+
+  test('有 charts → 热度与情感图表渲染（含诚实标注 note）', async ({ page }) => {
+    await page.goto('/supply')
+
+    await expect(page.locator('.charts-section')).toBeVisible({ timeout: 8000 })
+    // supply 渲染 ip_mentions + sentiment 三张卡（无 Agent 工作量图）
+    await expect(page.locator('.chart-card')).toHaveCount(3)
+    await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
+    const content = await page.content()
+    expect(content).toContain('IP 热度提及量')
+    expect(content).toContain('情感倾向分布')
+    expect(content).toContain('逐条情感强度')
+    expect(content).toContain('非真实时序指数')
+  })
+
+  test('无 charts → 图表区整块不存在（含标题）', async ({ page }) => {
+    await page.route(/\/api\/boards\/supply$/, (route) =>
+      route.fulfill({
+        json: { ...MOCK_BOARD_SUPPLY, charts: { agent_activity: [], ip_mentions: null, sentiment: null } },
+        status: 200,
+      })
+    )
+    await page.goto('/supply')
+
+    await expect(page.locator('.timeline-dot').first()).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.charts-section')).toHaveCount(0)
+    await expect(page.locator('.chart-card')).toHaveCount(0)
+    // 原有区块不受影响
+    await expect(page.locator('.tools-card')).toBeVisible()
   })
 })
