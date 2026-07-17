@@ -38,3 +38,5 @@ def test_run_analysis_returns_500_on_llm_error():
             instance.execute.side_effect = RuntimeError("LLM timeout")
             resp = client.post("/api/analyze", json={"query": "test"})
             assert resp.status_code == 500
+            # 红线：客户端只收通用文案，不得泄漏内部异常细节（如 "LLM timeout"）
+            assert resp.json()["detail"] == "分析失败，请稍后重试"

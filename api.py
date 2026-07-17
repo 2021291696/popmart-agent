@@ -350,7 +350,10 @@ def run_analysis(req: AnalyzeRequest, request: Request):
         _save_result_to_cache(query, result_dict)
         return {"query": query, "result": result_dict}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        # 与全局异常处理器同一红线：客户端只收通用文案，内部细节记服务端日志
+        log.exception("POST /api/analyze 分析失败")
+        detail = str(exc) if DEBUG_API else "分析失败，请稍后重试"
+        raise HTTPException(status_code=500, detail=detail)
 
 
 @app.exception_handler(Exception)
@@ -366,4 +369,6 @@ def global_exception_handler(request: Request, exc: Exception):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+    # 仅本地开发用（reload=True 禁用于生产）；
+    # 默认绑回环地址——绑非回环地址前必须先设 STREAMLIT_PASSWORD 启用认证
+    uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)

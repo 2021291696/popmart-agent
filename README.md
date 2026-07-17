@@ -60,11 +60,14 @@
 
 ```bash
 # 终端 1：启动 FastAPI（读 .demo_cache.json）
-uv run python -m uvicorn api:app --host 0.0.0.0 --port 8000
+uv run python -m uvicorn api:app --host 127.0.0.1 --port 8000
 
 # 终端 2：启动前端
 cd frontend && npm install && npm run dev    # → http://localhost:3000
 ```
+
+> 安全注意：未设置 `STREAMLIT_PASSWORD` 时 API 免认证，因此务必只绑回环地址；
+> **绑非回环地址（如 `0.0.0.0`）前必须先设 `STREAMLIT_PASSWORD`**。
 
 - FastAPI 端点：`GET /api/scenarios`、`GET /api/analyze?query=...`、`POST /api/analyze`
 - 三层降级：API → 前端 `public/data/cache.json` 副本 → null
